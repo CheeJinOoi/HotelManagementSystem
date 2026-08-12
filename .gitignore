@@ -1,0 +1,4 @@
+# Generated folders - safe to delete; recreated by run.bat / run.ps1
+bin/
+data/
+*.class
