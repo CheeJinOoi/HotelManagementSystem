@@ -22,10 +22,11 @@ public class HotelUI {
     System.out.println("\n==============================================");
     System.out.println(" TARUMT Resorts - Hotel Management System");
     System.out.println("==============================================");
-    System.out.println("1. GUI (Walk-In + Housekeeping + VIP)");
+    System.out.println("1. GUI (Walk-In + Housekeeping + VIP + FrontDesk)");
     System.out.println("2. Walk-In (console)");
     System.out.println("3. Housekeeping (console)");
     System.out.println("4. VIP Room Allocation (console)");
+    System.out.println("5. Front Desk (console)");
     System.out.println("0. Quit");
     System.out.print("Enter choice: ");
     try {

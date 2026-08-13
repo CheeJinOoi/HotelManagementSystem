@@ -4,6 +4,7 @@ import boundary.ConsoleUI;
 import boundary.HotelGUI;
 import boundary.HotelUI;
 import boundary.VIPConsoleUI;
+import control.FrontDeskController;
 import control.HotelBootstrap;
 import control.HousekeepingController;
 import control.VIPRoomAllocationControl;
@@ -28,6 +29,9 @@ public class HotelMain {
 
         HotelUI hotelUI = new HotelUI();
 
+        //Front Desk uses SAME Walk-In data
+        FrontDeskController frontDesk = new FrontDeskController(walkIn);
+
         // Save housekeeping state on JVM exit
         Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
@@ -40,7 +44,7 @@ public class HotelMain {
                     MessageUI.displayHotelExitMessage();
                     break;
                 case 1:
-                    HotelGUI.open(walkIn, housekeeping, vipControl);
+                    HotelGUI.open(walkIn, housekeeping, vipControl,frontDesk);
                     System.out.println("GUI opened. Close the window when finished.");
                     break;
                 case 2:
@@ -51,6 +55,9 @@ public class HotelMain {
                     break;
                 case 4:
                     new VIPConsoleUI(vipControl).start();
+                    break;
+                case 5:
+                    frontDesk.runFrontDesk();
                     break;
                 default:
                     MessageUI.displayInvalidChoiceMessage();

@@ -14,7 +14,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Iterator;
 import utility.MessageUI;
-
 /**
  * WalkInBookingControl.java
  * CONTROL layer for Walk-In Registrations & Standard Booking (Linear ADT module).
@@ -326,6 +325,25 @@ public class WalkInBookingControl {
   public Reservation[] getPendingReservations() {
     return copyQueue(pendingQueue);
   }
+
+  public Reservation[] getAllReservations() {
+
+    int size =
+            historyQueue.getNumberOfEntries();
+
+    Reservation[] reservations =
+            new Reservation[size];
+
+    for (int i = 1;
+            i <= size;
+            i++) {
+
+        reservations[i - 1] =
+                historyQueue.getEntry(i);
+    }
+
+    return reservations;
+}
 
   public String formatReservationDetails(Reservation reservation) {
     if (reservation == null) {
@@ -770,4 +788,7 @@ public class WalkInBookingControl {
   private void saveReservations() {
     reservationDAO.saveToFile(pendingQueue, historyQueue);
   }
+
+
+
 }

@@ -1,6 +1,7 @@
 package app;
 
 import boundary.HotelGUI;
+import control.FrontDeskController;
 import control.HotelBootstrap;
 import control.HousekeepingController;
 import control.VIPRoomAllocationControl; 
@@ -27,7 +28,10 @@ public class Main {
     // Persist housekeeping state on JVM exit
     Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
+    //FrontDeskService
+    FrontDeskController frontDesk = new FrontDeskController(walkIn);
+    
     // Open the tabbed GUI on the Swing event thread (Walk-In + Housekeeping + VIP)
-    HotelGUI.open(walkIn, housekeeping, vipControl);  // ← 添加 vipControl
+    HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);  // ← 添加 vipControl
   }
 }

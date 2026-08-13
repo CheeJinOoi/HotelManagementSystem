@@ -1,820 +1,215 @@
 package control;
 
-import dao.GuestDAO;
-import entity.Guest;
 import entity.Reservation;
 import entity.ReservationStatus;
-import entity.Room;
-import hashing.HashedDictionary;
 
 /**
  * FrontDeskController
  *
- * CONTROL class for the Front Desk module.
+ * Front Desk uses the SAME reservation data
+ * managed by WalkInBookingControl.
  *
- * Responsibilities:
- * - Manage Guest through GuestDAO
- * - Manage Reservation using HashedDictionary
- * - Manage Room using HashedDictionary
- * - Assign available rooms
- * - Check-in and check-out guests
- * - Manage reservation status
- *
+ * No Java Collection Framework is used.
  */
 public class FrontDeskController {
 
-    // =====================================================
-    // ATTRIBUTES
-    // =====================================================
-
-    private GuestDAO guestDAO;
-
-    private HashedDictionary<String, Reservation>
-            reservationDictionary;
-
-    private HashedDictionary<String, Room>
-            roomDictionary;
-
+    private WalkInBookingControl walkIn;
 
     // =====================================================
     // CONSTRUCTOR
     // =====================================================
 
-    public FrontDeskController() {
+    public FrontDeskController(WalkInBookingControl walkIn) {
 
-        guestDAO = new GuestDAO();
-
-        reservationDictionary =
-                new HashedDictionary<String, Reservation>();
-
-        roomDictionary =
-                new HashedDictionary<String, Room>();
+        this.walkIn = walkIn;
     }
 
-
     // =====================================================
-    // GUEST MANAGEMENT
+    // SEARCH RESERVATION
     // =====================================================
 
     /**
-     * Add a new guest.
+     * Search reservation using the unique
+     * 8-digit confirmation number.
      *
-     * Identity number is used as the
-     * search key in GuestDAO.
+     * The actual search is performed by
+     * WalkInBookingControl.
      */
-    public boolean addGuest(Guest guest) {
+    public Reservation findReservation(String confirmationNumber) {
 
-        return guestDAO.addGuest(guest);
+        if (confirmationNumber == null
+                || confirmationNumber.trim().isEmpty()) {
+
+            return null;
+        }
+
+        return walkIn.findReservation(
+                confirmationNumber.trim());
     }
-
-
-    /**
-     * Find guest using IC / passport number.
-     */
-    public Guest findGuest(String identityNumber) {
-
-        return guestDAO.getGuest(identityNumber);
-    }
-
-
-    /**
-     * Update guest information.
-     */
-    public boolean updateGuest(Guest guest) {
-
-        return guestDAO.updateGuest(guest);
-    }
-
-
-    /**
-     * Remove guest using IC / passport number.
-     */
-    public Guest removeGuest(String identityNumber) {
-
-        return guestDAO.deleteGuest(identityNumber);
-    }
-
-
-    /**
-     * Check whether guest exists.
-     */
-    public boolean guestExists(
-            String identityNumber) {
-
-        return guestDAO.containsGuest(
-                identityNumber);
-    }
-
-
-    /**
-     * Return total number of guests.
-     */
-    public int getGuestCount() {
-
-        return guestDAO.getGuestCount();
-    }
-
-
-    /**
-     * Return all guests.
-     */
-    public Object[] getAllGuests() {
-
-        return guestDAO.getAllGuests();
-    }
-
 
     // =====================================================
-    // RESERVATION MANAGEMENT
+    // FORMAT RESERVATION
     // =====================================================
 
     /**
-     * Add a new reservation.
-     *
-     * Confirmation number is used as the
-     * search key.
-     *
-     * New reservation starts with WAITING status.
+     * Displays complete guest and reservation information.
      */
-    public boolean addReservation(
+    public String formatReservationDetails(
             Reservation reservation) {
 
         if (reservation == null) {
-            return false;
+
+            return "Reservation not found.";
         }
 
-        String confirmationNumber =
-                reservation.getConfirmationNumber();
-
-        if (confirmationNumber == null
-                || confirmationNumber.isEmpty()) {
-
-            return false;
-        }
-
-        // Prevent duplicate confirmation number
-        if (reservationDictionary.contains(
-                confirmationNumber)) {
-
-            return false;
-        }
-
-        // New reservation starts as WAITING
-        reservation.setStatus(
-                ReservationStatus.WAITING);
-
-        reservationDictionary.add(
-                confirmationNumber,
+        return walkIn.formatReservationDetails(
                 reservation);
-
-        return true;
     }
-
-
-    /**
-     * Find reservation using confirmation number.
-     */
-    public Reservation findReservation(
-            String confirmationNumber) {
-
-        if (confirmationNumber == null) {
-            return null;
-        }
-
-        return reservationDictionary.getValue(
-                confirmationNumber);
-    }
-
-
-    /**
-     * Update existing reservation.
-     */
-    public boolean updateReservation(
-            Reservation reservation) {
-
-        if (reservation == null) {
-            return false;
-        }
-
-        String confirmationNumber =
-                reservation.getConfirmationNumber();
-
-        if (confirmationNumber == null
-                || confirmationNumber.isEmpty()) {
-
-            return false;
-        }
-
-        if (!reservationDictionary.contains(
-                confirmationNumber)) {
-
-            return false;
-        }
-
-        reservationDictionary.add(
-                confirmationNumber,
-                reservation);
-
-        return true;
-    }
-
-
-    /**
-     * Remove reservation from dictionary.
-     */
-    public Reservation removeReservation(
-            String confirmationNumber) {
-
-        if (confirmationNumber == null) {
-            return null;
-        }
-
-        return reservationDictionary.remove(
-                confirmationNumber);
-    }
-
-
-    /**
-     * Check whether reservation exists.
-     */
-    public boolean reservationExists(
-            String confirmationNumber) {
-
-        return reservationDictionary.contains(
-                confirmationNumber);
-    }
-
-
-    /**
-     * Return total number of reservations.
-     */
-    public int getReservationCount() {
-
-        return reservationDictionary.getSize();
-    }
-
-
-    /**
-     * Return all reservations.
-     */
-    public Object[] getAllReservations() {
-
-        return reservationDictionary.getAllValues();
-    }
-
 
     // =====================================================
-    // ROOM MANAGEMENT
+    // GET ALL RESERVATIONS
     // =====================================================
 
     /**
-     * Add a new room.
+     * Gets all reservations from the shared
+     * WalkInBookingControl data.
      *
-     * Room ID is used as the search key.
+     * Uses custom ADT / array.
+     * No ArrayList or Java Collection Framework.
      */
-    public boolean addRoom(Room room) {
+    public Reservation[] getAllReservations() {
 
-        if (room == null) {
-            return false;
-        }
-
-        String roomId =
-                room.getRoomId();
-
-        if (roomId == null
-                || roomId.isEmpty()) {
-
-            return false;
-        }
-
-        // Prevent duplicate room ID
-        if (roomDictionary.contains(roomId)) {
-
-            return false;
-        }
-
-        roomDictionary.add(
-                roomId,
-                room);
-
-        return true;
+        return walkIn.getAllReservations();
     }
-
-
-    /**
-     * Find room using room ID.
-     */
-    public Room findRoom(String roomId) {
-
-        if (roomId == null) {
-            return null;
-        }
-
-        return roomDictionary.getValue(roomId);
-    }
-
-
-    /**
-     * Check whether room exists.
-     */
-    public boolean roomExists(String roomId) {
-
-        return roomDictionary.contains(roomId);
-    }
-
-
-    /**
-     * Remove room.
-     */
-    public Room removeRoom(String roomId) {
-
-        if (roomId == null) {
-            return null;
-        }
-
-        return roomDictionary.remove(roomId);
-    }
-
-
-    /**
-     * Return total number of rooms.
-     */
-    public int getRoomCount() {
-
-        return roomDictionary.getSize();
-    }
-
-
-    /**
-     * Return all rooms.
-     */
-    public Object[] getAllRooms() {
-
-        return roomDictionary.getAllValues();
-    }
-
 
     // =====================================================
-    // FIND AVAILABLE ROOM
+    // FRONT DESK REPORT
     // =====================================================
 
     /**
-     * Find a room that:
-     *
-     * 1. Has the requested room type
-     * 2. Is READY_FOR_CHECKIN
-     * 3. Is not occupied
-     *
-     * Uses Object[] returned by custom
-     * HashedDictionary.
+     * Generates a simple Front Desk report.
      */
-    public Room findAvailableRoom(
-            String roomType) {
+    public String generateFrontDeskReport() {
 
-        if (roomType == null) {
-            return null;
+        Reservation[] reservations =
+                getAllReservations();
+
+        if (reservations == null
+                || reservations.length == 0) {
+
+            return "\n====================================\n"
+                    + "      FRONT DESK REPORT\n"
+                    + "====================================\n"
+                    + "No reservation records found.\n";
         }
 
-        Object[] rooms =
-                roomDictionary.getAllValues();
+        int total = reservations.length;
+
+        int waiting = 0;
+        int assigned = 0;
+        int checkedIn = 0;
+        int checkedOut = 0;
+        int cancelled = 0;
 
         for (int i = 0;
-             i < rooms.length;
-             i++) {
+                i < reservations.length;
+                i++) {
 
-            Room room =
-                    (Room) rooms[i];
+            Reservation r = reservations[i];
 
-            if (room != null
-                    && roomType.equalsIgnoreCase(
-                            room.getRoomType())
-                    && room.isReadyForAssignment()) {
+            if (r == null) {
+                continue;
+            }
 
-                return room;
+            ReservationStatus status =
+                    r.getStatus();
+
+            if (status == ReservationStatus.WAITING) {
+
+                waiting++;
+
+            } else if (
+                    status == ReservationStatus.ASSIGNED) {
+
+                assigned++;
+
+            } else if (
+                    status == ReservationStatus.CHECKED_IN) {
+
+                checkedIn++;
+
+            } else if (
+                    status == ReservationStatus.CHECKED_OUT) {
+
+                checkedOut++;
+
+            } else if (
+                    status == ReservationStatus.CANCELLED) {
+
+                cancelled++;
             }
         }
 
-        return null;
+        StringBuilder report =
+                new StringBuilder();
+
+        report.append(
+                "\n====================================================\n");
+
+        report.append(
+                "              FRONT DESK REPORT\n");
+
+        report.append(
+                "====================================================\n");
+
+        report.append(
+                "Total Reservations : ")
+                .append(total)
+                .append("\n");
+
+        report.append(
+                "Waiting            : ")
+                .append(waiting)
+                .append("\n");
+
+        report.append(
+                "Assigned           : ")
+                .append(assigned)
+                .append("\n");
+
+        report.append(
+                "Checked-In         : ")
+                .append(checkedIn)
+                .append("\n");
+
+        report.append(
+                "Checked-Out        : ")
+                .append(checkedOut)
+                .append("\n");
+
+        report.append(
+                "Cancelled          : ")
+                .append(cancelled)
+                .append("\n");
+
+        report.append(
+                "====================================================\n");
+
+        return report.toString();
     }
 
-
     // =====================================================
-    // ASSIGN ROOM
+    // CONSOLE FRONT DESK
     // =====================================================
 
     /**
-     * Assign a specific room to a reservation.
-     *
-     * WAITING -> ASSIGNED
+     * Runs Front Desk console UI.
      */
-    public boolean assignRoom(
-            String confirmationNumber,
-            String roomId) {
+    public void runFrontDesk() {
 
-        Reservation reservation =
-                findReservation(
-                        confirmationNumber);
+        boundary.FrontDeskUI ui =
+                new boundary.FrontDeskUI(this);
 
-        if (reservation == null) {
-            return false;
-        }
-
-        Room room =
-                findRoom(roomId);
-
-        if (room == null) {
-            return false;
-        }
-
-        // Only WAITING reservation can be assigned
-        if (reservation.getStatus()
-                != ReservationStatus.WAITING) {
-
-            return false;
-        }
-
-        // Reservation cannot already have a room
-        if (reservation.getAssignedRoomId()
-                != null) {
-
-            return false;
-        }
-
-        // Room must be ready and not occupied
-        if (!room.isReadyForAssignment()) {
-
-            return false;
-        }
-
-        // Room type must match reservation
-        if (!room.getRoomType()
-                .equalsIgnoreCase(
-                        reservation.getRoomType())) {
-
-            return false;
-        }
-
-        // Assign room to reservation
-        reservation.setAssignedRoomId(
-                roomId);
-
-        // Occupy room
-        room.occupy(
-                confirmationNumber);
-
-        // Update status
-        reservation.setStatus(
-                ReservationStatus.ASSIGNED);
-
-        return true;
-    }
-
-
-    // =====================================================
-    // AUTOMATIC ROOM ASSIGNMENT
-    // =====================================================
-
-    /**
-     * Automatically find a suitable room
-     * and assign it to the reservation.
-     *
-     * WAITING -> ASSIGNED
-     */
-    public boolean autoAssignRoom(
-            String confirmationNumber) {
-
-        Reservation reservation =
-                findReservation(
-                        confirmationNumber);
-
-        if (reservation == null) {
-            return false;
-        }
-
-        if (reservation.getStatus()
-                != ReservationStatus.WAITING) {
-
-            return false;
-        }
-
-        Room room =
-                findAvailableRoom(
-                        reservation.getRoomType());
-
-        if (room == null) {
-            return false;
-        }
-
-        return assignRoom(
-                confirmationNumber,
-                room.getRoomId());
-    }
-
-
-    // =====================================================
-    // CHECK IN
-    // =====================================================
-
-    /**
-     * Check in a guest.
-     *
-     * ASSIGNED -> CHECKED_IN
-     */
-    public boolean checkIn(
-            String confirmationNumber) {
-
-        Reservation reservation =
-                findReservation(
-                        confirmationNumber);
-
-        if (reservation == null) {
-            return false;
-        }
-
-        // Only ASSIGNED reservation can check in
-        if (reservation.getStatus()
-                != ReservationStatus.ASSIGNED) {
-
-            return false;
-        }
-
-        String roomId =
-                reservation.getAssignedRoomId();
-
-        if (roomId == null) {
-            return false;
-        }
-
-        Room room =
-                findRoom(roomId);
-
-        if (room == null) {
-            return false;
-        }
-
-        /*
-         * Room should already be occupied
-         * after assignment.
-         */
-        if (!room.isOccupied()) {
-
-            room.occupy(
-                    confirmationNumber);
-        }
-
-        // Update reservation status
-        reservation.setStatus(
-                ReservationStatus.CHECKED_IN);
-
-        return true;
-    }
-
-
-    // =====================================================
-    // CHECK OUT
-    // =====================================================
-
-    /**
-     * Check out a guest.
-     *
-     * CHECKED_IN -> CHECKED_OUT
-     *
-     * Room becomes DIRTY after checkout.
-     */
-    public boolean checkOut(
-            String confirmationNumber) {
-
-        Reservation reservation =
-                findReservation(
-                        confirmationNumber);
-
-        if (reservation == null) {
-            return false;
-        }
-
-        // Only CHECKED_IN can check out
-        if (reservation.getStatus()
-                != ReservationStatus.CHECKED_IN) {
-
-            return false;
-        }
-
-        String roomId =
-                reservation.getAssignedRoomId();
-
-        if (roomId == null) {
-            return false;
-        }
-
-        Room room =
-                findRoom(roomId);
-
-        if (room == null) {
-            return false;
-        }
-
-        if (!room.isOccupied()) {
-            return false;
-        }
-
-        /*
-         * This:
-         * 1. Clears occupancy
-         * 2. Changes room status to DIRTY
-         * 3. Adds status history
-         */
-        room.vacateAfterCheckout();
-
-        // Update reservation status
-        reservation.setStatus(
-                ReservationStatus.CHECKED_OUT);
-
-        return true;
-    }
-
-
-    // =====================================================
-    // CANCEL RESERVATION
-    // =====================================================
-
-    /**
-     * Cancel a reservation.
-     *
-     * WAITING   -> CANCELLED
-     * ASSIGNED  -> CANCELLED
-     *
-     * CHECKED_IN and CHECKED_OUT
-     * cannot be cancelled.
-     */
-    public boolean cancelReservation(
-            String confirmationNumber) {
-
-        Reservation reservation =
-                findReservation(
-                        confirmationNumber);
-
-        if (reservation == null) {
-            return false;
-        }
-
-        ReservationStatus status =
-                reservation.getStatus();
-
-        // Cannot cancel checked-in
-        if (status
-                == ReservationStatus.CHECKED_IN) {
-
-            return false;
-        }
-
-        // Cannot cancel checked-out
-        if (status
-                == ReservationStatus.CHECKED_OUT) {
-
-            return false;
-        }
-
-        /*
-         * If room has been assigned,
-         * release the room.
-         */
-        String roomId =
-                reservation.getAssignedRoomId();
-
-        if (roomId != null) {
-
-            Room room =
-                    findRoom(roomId);
-
-            if (room != null) {
-
-                room.clearOccupancy();
-            }
-
-            reservation.setAssignedRoomId(
-                    null);
-        }
-
-        // Update reservation status
-        reservation.setStatus(
-                ReservationStatus.CANCELLED);
-
-        return true;
-    }
-
-
-    // =====================================================
-    // ROOM STATISTICS
-    // =====================================================
-
-    /**
-     * Count available rooms.
-     */
-    public int getAvailableRoomCount() {
-
-        int count = 0;
-
-        Object[] rooms =
-                roomDictionary.getAllValues();
-
-        for (int i = 0;
-             i < rooms.length;
-             i++) {
-
-            Room room =
-                    (Room) rooms[i];
-
-            if (room != null
-                    && room.isReadyForAssignment()) {
-
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-
-    /**
-     * Count occupied rooms.
-     */
-    public int getOccupiedRoomCount() {
-
-        int count = 0;
-
-        Object[] rooms =
-                roomDictionary.getAllValues();
-
-        for (int i = 0;
-             i < rooms.length;
-             i++) {
-
-            Room room =
-                    (Room) rooms[i];
-
-            if (room != null
-                    && room.isOccupied()) {
-
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-
-    // =====================================================
-    // RESERVATION STATISTICS
-    // =====================================================
-
-    /**
-     * Count reservations by status.
-     */
-    public int countReservationsByStatus(
-            ReservationStatus targetStatus) {
-
-        if (targetStatus == null) {
-            return 0;
-        }
-
-        int count = 0;
-
-        Object[] reservations =
-                reservationDictionary
-                        .getAllValues();
-
-        for (int i = 0;
-             i < reservations.length;
-             i++) {
-
-            Reservation reservation =
-                    (Reservation) reservations[i];
-
-            if (reservation != null
-                    && reservation.getStatus()
-                            == targetStatus) {
-
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-
-    // =====================================================
-    // CLEAR
-    // =====================================================
-
-    /**
-     * Clear all Front Desk data.
-     */
-    public void clearAll() {
-
-        guestDAO.clear();
-
-        reservationDictionary.clear();
-
-        roomDictionary.clear();
+        ui.run();
     }
 }
