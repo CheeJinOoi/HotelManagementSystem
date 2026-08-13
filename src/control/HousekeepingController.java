@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -204,5 +205,17 @@ public class HousekeepingController {
             result[i] = rooms[i];
         }
         return result;
+    }
+            // ===== ✅ 新增方法 =====
+    /**
+     * Get all rooms as a List for sharing with other modules (e.g., VIP module).
+     * @return List of all rooms
+     */
+    public List<Room> getAllRoomsList() {
+        List<Room> roomList = new ArrayList<>();
+        for (int i = 0; i < roomCount; i++) {
+            roomList.add(rooms[i]);
+        }
+        return roomList;
     }
 }

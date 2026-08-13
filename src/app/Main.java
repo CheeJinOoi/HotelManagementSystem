@@ -3,6 +3,7 @@ package app;
 import boundary.HotelGUI;
 import control.HotelBootstrap;
 import control.HousekeepingController;
+import control.VIPRoomAllocationControl; 
 import control.WalkInBookingControl;
 
 /**
@@ -18,10 +19,15 @@ public class Main {
     HousekeepingController housekeeping = HotelBootstrap.create();
     WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
 
+    // ===== VIP Module =====
+    VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
+    // share room to vip
+    vipControl.setRooms(housekeeping.getAllRoomsList());
+
     // Persist housekeeping state on JVM exit
     Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
-    // Open the tabbed GUI on the Swing event thread
-    HotelGUI.open(walkIn, housekeeping);
+    // Open the tabbed GUI on the Swing event thread (Walk-In + Housekeeping + VIP)
+    HotelGUI.open(walkIn, housekeeping, vipControl);  // ← 添加 vipControl
   }
 }

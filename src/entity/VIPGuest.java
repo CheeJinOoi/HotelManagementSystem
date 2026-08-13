@@ -1,0 +1,85 @@
+package entity;
+
+import java.io.Serializable;
+
+public class VIPGuest extends Guest implements Comparable<VIPGuest>, Serializable {
+
+    public enum MembershipTier {
+        ELITE(3, "Elite"),
+        DIAMOND(2, "Diamond"),
+        PLATINUM(1, "Platinum");
+
+        private final int priority;
+        private final String display;
+
+        MembershipTier(int priority, String display) {
+            this.priority = priority;
+            this.display = display;
+        }
+
+        public int getPriority() { return priority; }
+        public String getDisplay() { return display; }
+    }
+
+    private MembershipTier tier;
+    private int loyaltyPoints;
+    private String email;
+    private String membershipId;
+    private Room assignedRoom;
+
+    public VIPGuest(String name, String identityNumber, String phone, 
+                    String membershipId, MembershipTier tier) {
+        super(name, identityNumber, phone);
+        this.membershipId = membershipId;
+        this.tier = tier;
+        this.loyaltyPoints = 0;
+        this.email = "";
+        this.assignedRoom = null;
+    }
+
+    public VIPGuest(String name, String identityNumber, String phone,
+                    String membershipId, MembershipTier tier, 
+                    int loyaltyPoints, String email) {
+        super(name, identityNumber, phone);
+        this.membershipId = membershipId;
+        this.tier = tier;
+        this.loyaltyPoints = loyaltyPoints;
+        this.email = email;
+        this.assignedRoom = null;
+    }
+
+    public MembershipTier getTier() { return tier; }
+    public int getLoyaltyPoints() { return loyaltyPoints; }
+    public String getEmail() { return email; }
+    public String getMembershipId() { return membershipId; }
+    public Room getAssignedRoom() { return assignedRoom; }  // ← 新增
+
+    public void setTier(MembershipTier tier) { this.tier = tier; }
+    public void addLoyaltyPoints(int points) { this.loyaltyPoints += points; }
+    public void setEmail(String email) { this.email = email; }
+    public void setAssignedRoom(Room assignedRoom) { this.assignedRoom = assignedRoom; }  // ← 新增
+
+    @Override
+    public int compareTo(VIPGuest other) {
+        return Integer.compare(other.tier.getPriority(), this.tier.getPriority());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        VIPGuest other = (VIPGuest) obj;
+        return membershipId != null && membershipId.equals(other.membershipId);
+    }
+
+    @Override
+    public int hashCode() {
+        return membershipId != null ? membershipId.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%-20s [%-10s] ID: %-8s Points: %d", 
+            getName(), tier.getDisplay(), membershipId, loyaltyPoints);
+    }
+}

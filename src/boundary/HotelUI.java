@@ -8,7 +8,7 @@ import java.util.Scanner;
  *
  * Actors (users) only talk to boundary classes in ECB.
  *
- * @author vinsx
+ * @author vinsx, chong
  */
 public class HotelUI {
 
@@ -22,9 +22,10 @@ public class HotelUI {
     System.out.println("\n==============================================");
     System.out.println(" TARUMT Resorts - Hotel Management System");
     System.out.println("==============================================");
-    System.out.println("1. GUI");
+    System.out.println("1. GUI (Walk-In + Housekeeping + VIP)");
     System.out.println("2. Walk-In (console)");
     System.out.println("3. Housekeeping (console)");
+    System.out.println("4. VIP Room Allocation (console)");
     System.out.println("0. Quit");
     System.out.print("Enter choice: ");
     try {
