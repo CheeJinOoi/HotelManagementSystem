@@ -3,21 +3,10 @@ package control;
 import entity.Reservation;
 import entity.ReservationStatus;
 
-/**
- * FrontDeskController
- *
- * Front Desk uses the SAME reservation data
- * managed by WalkInBookingControl.
- *
- * No Java Collection Framework is used.
- */
 public class FrontDeskController {
 
     private WalkInBookingControl walkIn;
 
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
 
     public FrontDeskController(WalkInBookingControl walkIn) {
 
