@@ -159,12 +159,26 @@ public class VIPRoomAllocationGUI extends JPanel {
             return;
         }
 
+        VIPGuest[] vipGuests = control.getAllVIPGuests();
+
         for (Room room : rooms) {
             String status;
             String assigned = "-";
             if (room.isOccupied()) {
                 status = "❌ Occupied";
-                assigned = room.getAssignedConfirmationNumber();
+                String confNumber = room.getAssignedConfirmationNumber();
+                boolean found = false;
+                for (VIPGuest guest : vipGuests) {
+                    if (guest.getConfirmationNumber() != null &&
+                        guest.getConfirmationNumber().equals(confNumber)) {
+                        assigned = guest.getName() + " (VIP)";
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    assigned = confNumber + " (Walk-In)";
+                }
             } else if (room.isReadyForAssignment()) {
                 status = "✅ Available";
             } else {

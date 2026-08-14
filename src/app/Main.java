@@ -7,32 +7,21 @@ import control.HousekeepingController;
 import control.VIPRoomAllocationControl;
 import control.WalkInBookingControl;
 
-/**
- * Main.java
- * Shortcut launcher: skips the console hotel menu and opens the combined GUI directly.
- *
- * Use HotelMain if you also want console options.
- * Use this class (or run.bat -> app.HotelMain) for the normal team demo flow.
- */
 public class Main {
     public static void main(String[] args) {
-        // Build shared rooms, then Walk-In control that uses those same rooms
         HousekeepingController housekeeping = HotelBootstrap.create();
         WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
 
-        // ===== VIP Module =====
         VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
-        // ✅ Share rooms using array (JCF-compliant)
-        // Changed from getAllRoomsList() to getAllRooms()
         vipControl.setRooms(housekeeping.getAllRooms());
 
-        // Persist housekeeping state on JVM exit
+        // ✅ No default VIP data - user must add manually
+        // vipControl.addTestData();  // ← COMMENTED OUT
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
-        // FrontDeskService
         FrontDeskController frontDesk = new FrontDeskController(walkIn);
 
-        // Open the tabbed GUI on the Swing event thread (Walk-In + Housekeeping + VIP + FrontDesk)
         HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);
     }
 }

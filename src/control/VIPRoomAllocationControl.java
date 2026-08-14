@@ -6,11 +6,6 @@ import entity.HousekeepingStatus;
 import entity.Room;
 import entity.VIPGuest;
 
-/**
- * VIPRoomAllocationControl.java
- * CONTROL layer for VIP Room Allocation.
- * ✅ Fully compliant: No JCF classes used!
- */
 public class VIPRoomAllocationControl {
 
     private PriorityQueueInterface<VIPGuest> queue;
@@ -61,25 +56,11 @@ public class VIPRoomAllocationControl {
             rooms[roomCount++] = new Room("301", "Standard", HousekeepingStatus.READY_FOR_CHECKIN);
             rooms[roomCount++] = new Room("302", "Standard", HousekeepingStatus.READY_FOR_CHECKIN);
             rooms[roomCount++] = new Room("401", "Executive", HousekeepingStatus.READY_FOR_CHECKIN);
+            System.out.println("✅ " + roomCount + " rooms created for VIP module.");
         }
 
         if (guestCount == 0) {
-            allVIPGuests = new VIPGuest[5];
-            guestCount = 0;
-            allVIPGuests[guestCount++] = new VIPGuest("John Smith", "S1234567A", "012-345-6789",
-                    "VIP001", VIPGuest.MembershipTier.ELITE, 5000, "john@email.com");
-            allVIPGuests[guestCount++] = new VIPGuest("Maria Garcia", "S7654321B", "012-987-6543",
-                    "VIP002", VIPGuest.MembershipTier.DIAMOND, 3000, "maria@email.com");
-            allVIPGuests[guestCount++] = new VIPGuest("David Lee", "S5555555C", "016-555-1234",
-                    "VIP003", VIPGuest.MembershipTier.PLATINUM, 1500, "david@email.com");
-            allVIPGuests[guestCount++] = new VIPGuest("Sarah Tan", "S7777777D", "019-777-8888",
-                    "VIP004", VIPGuest.MembershipTier.DIAMOND, 2500, "sarah@email.com");
-            allVIPGuests[guestCount++] = new VIPGuest("James Wong", "S3333333E", "017-333-4444",
-                    "VIP005", VIPGuest.MembershipTier.ELITE, 8000, "james@email.com");
-
-            for (int i = 0; i < guestCount; i++) {
-                queue.enqueue(allVIPGuests[i]);
-            }
+            System.out.println("ℹ️ No default VIP guests. Please use 'Add VIP Guest' to add guests.");
         }
     }
 
@@ -141,19 +122,44 @@ public class VIPRoomAllocationControl {
                 " to " + guest.getName() + " (Conf: " + confirmationNumber + ")");
     }
 
-    // ===== Release Room =====
+    // ===== Release Room (FIXED: Uses vacateAfterCheckout) =====
     public void releaseRoom(String roomId) {
         for (int i = 0; i < roomCount; i++) {
             if (rooms[i].getRoomId().equals(roomId) && rooms[i].isOccupied()) {
-                rooms[i].clearOccupancy();
+                String confNumber = rooms[i].getAssignedConfirmationNumber();
+
+                // ✅ 关键修复：使用 vacateAfterCheckout()
+                // 这会自动：clearOccupancy() + 设置状态为 DIRTY
+                rooms[i].vacateAfterCheckout();
+
+                // 从 VIP 系统中移除客人
                 for (int j = 0; j < guestCount; j++) {
-                    if (allVIPGuests[j].getAssignedRoom() != null &&
-                        allVIPGuests[j].getAssignedRoom().getRoomId().equals(roomId)) {
-                        allVIPGuests[j].setAssignedRoom(null);
+                    if (allVIPGuests[j].getConfirmationNumber() != null &&
+                        allVIPGuests[j].getConfirmationNumber().equals(confNumber)) {
+
+                        String removedName = allVIPGuests[j].getName();
+
+                        // 移除客人
+                        for (int k = j; k < guestCount - 1; k++) {
+                            allVIPGuests[k] = allVIPGuests[k + 1];
+                        }
+                        allVIPGuests[guestCount - 1] = null;
+                        guestCount--;
+
+                        // 缩小数组
+                        if (guestCount > 0 && guestCount < allVIPGuests.length / 2) {
+                            VIPGuest[] newArray = new VIPGuest[allVIPGuests.length / 2 + 1];
+                            System.arraycopy(allVIPGuests, 0, newArray, 0, guestCount);
+                            allVIPGuests = newArray;
+                        }
+
+                        System.out.println("🗑️ VIP Guest " + removedName + " removed from system.");
                         break;
                     }
                 }
-                System.out.println("🔓 Room " + roomId + " released.");
+
+                System.out.println("🔓 Room " + roomId + " released and set to DIRTY.");
+
                 if (!queue.isEmpty()) {
                     System.out.println("🔄 Auto-allocating next VIP...");
                     allocateRoom();
@@ -201,23 +207,43 @@ public class VIPRoomAllocationControl {
             return;
         }
         System.out.println("\n=== Room Status ===");
-        System.out.printf("%-10s %-12s %-15s %-25s%n", "Room", "Type", "Status", "Assignment");
-        System.out.println("-".repeat(65));
+        System.out.printf("%-10s %-12s %-15s %-30s%n", "Room", "Type", "Status", "Assigned To");
+        System.out.println("-".repeat(70));
         for (int i = 0; i < roomCount; i++) {
             Room room = rooms[i];
             String status;
             String assigned = "-";
             if (room.isOccupied()) {
                 status = "❌ Occupied";
-                assigned = room.getAssignedConfirmationNumber();
+                String confNumber = room.getAssignedConfirmationNumber();
+                VIPGuest vipGuest = findVIPByConfirmationNumber(confNumber);
+                if (vipGuest != null) {
+                    assigned = vipGuest.getName() + " (VIP)";
+                } else {
+                    assigned = confNumber + " (Walk-In)";
+                }
             } else if (room.isReadyForAssignment()) {
                 status = "✅ Available";
             } else {
                 status = "🔧 " + room.getCurrentStatus();
             }
-            System.out.printf("%-10s %-12s %-15s %-25s%n",
+            System.out.printf("%-10s %-12s %-15s %-30s%n",
                 room.getRoomId(), room.getRoomType(), status, assigned);
         }
+    }
+
+    // ===== Helper: Find VIP by confirmation number =====
+    private VIPGuest findVIPByConfirmationNumber(String confirmationNumber) {
+        if (confirmationNumber == null) {
+            return null;
+        }
+        for (int i = 0; i < guestCount; i++) {
+            if (allVIPGuests[i].getConfirmationNumber() != null &&
+                allVIPGuests[i].getConfirmationNumber().equals(confirmationNumber)) {
+                return allVIPGuests[i];
+            }
+        }
+        return null;
     }
 
     // ===== Search VIP =====
@@ -403,7 +429,6 @@ public class VIPRoomAllocationControl {
         return result;
     }
 
-    // ===== Additional helper: View VIP details =====
     public void viewVIPDetails(String membershipId) {
         VIPGuest guest = searchByMembershipId(membershipId);
         if (guest == null) {

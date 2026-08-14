@@ -14,26 +14,19 @@ import utility.MessageUI;
 public class HotelMain {
 
     public static void main(String[] args) {
-        // 1. Create shared rooms (managed by Housekeeping)
         HousekeepingController housekeeping = HotelBootstrap.create();
         WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
 
-        // 2. Create VIP module
         VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
-
-        // 3. ✅ Share rooms using array (JCF-compliant)
-        //    Changed from getAllRoomsList() to getAllRooms()
         vipControl.setRooms(housekeeping.getAllRooms());
 
-        // 4. Add test VIP data
-        vipControl.addTestData();
+        // ✅ No default VIP data - user must add manually
+        // vipControl.addTestData();  // ← COMMENTED OUT
 
         HotelUI hotelUI = new HotelUI();
 
-        // Front Desk uses SAME Walk-In data
         FrontDeskController frontDesk = new FrontDeskController(walkIn);
 
-        // Save housekeeping state on JVM exit
         Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
         int choice = 0;
