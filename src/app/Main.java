@@ -4,7 +4,7 @@ import boundary.HotelGUI;
 import control.FrontDeskController;
 import control.HotelBootstrap;
 import control.HousekeepingController;
-import control.VIPRoomAllocationControl; 
+import control.VIPRoomAllocationControl;
 import control.WalkInBookingControl;
 
 /**
@@ -15,23 +15,24 @@ import control.WalkInBookingControl;
  * Use this class (or run.bat -> app.HotelMain) for the normal team demo flow.
  */
 public class Main {
-  public static void main(String[] args) {
-    // Build shared rooms, then Walk-In control that uses those same rooms
-    HousekeepingController housekeeping = HotelBootstrap.create();
-    WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
+    public static void main(String[] args) {
+        // Build shared rooms, then Walk-In control that uses those same rooms
+        HousekeepingController housekeeping = HotelBootstrap.create();
+        WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
 
-    // ===== VIP Module =====
-    VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
-    // share room to vip
-    vipControl.setRooms(housekeeping.getAllRoomsList());
+        // ===== VIP Module =====
+        VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
+        // ✅ Share rooms using array (JCF-compliant)
+        // Changed from getAllRoomsList() to getAllRooms()
+        vipControl.setRooms(housekeeping.getAllRooms());
 
-    // Persist housekeeping state on JVM exit
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
+        // Persist housekeeping state on JVM exit
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 
-    //FrontDeskService
-    FrontDeskController frontDesk = new FrontDeskController(walkIn);
-    
-    // Open the tabbed GUI on the Swing event thread (Walk-In + Housekeeping + VIP)
-    HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);  // ← 添加 vipControl
-  }
+        // FrontDeskService
+        FrontDeskController frontDesk = new FrontDeskController(walkIn);
+
+        // Open the tabbed GUI on the Swing event thread (Walk-In + Housekeeping + VIP + FrontDesk)
+        HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);
+    }
 }

@@ -4,17 +4,9 @@ import control.VIPRoomAllocationControl;
 import entity.Room;
 import entity.VIPGuest;
 import java.awt.*;
-import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * VIPRoomAllocationGUI.java
- * BOUNDARY (GUI panel): VIP Room Allocation tab inside HotelGUI.
- *
- * @author chong
- * Module: VIP & Loyalty Tier Priority Room Allocation
- */
 public class VIPRoomAllocationGUI extends JPanel {
 
     private final VIPRoomAllocationControl control;
@@ -29,7 +21,6 @@ public class VIPRoomAllocationGUI extends JPanel {
         this.control = control;
         setLayout(new BorderLayout(8, 8));
 
-        // Initialize table models
         queueTableModel = new DefaultTableModel(
             new String[]{"#", "Name", "Membership ID", "Tier", "Points"}, 0
         ) {
@@ -50,7 +41,6 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         queueTable = new JTable(queueTableModel);
         roomTable = new JTable(roomTableModel);
-        
         infoArea = new JTextArea();
         infoArea.setEditable(false);
         infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
@@ -75,19 +65,16 @@ public class VIPRoomAllocationGUI extends JPanel {
     }
 
     private void initComponents() {
-        // Left panel: VIP Queue
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setBorder(BorderFactory.createTitledBorder("👑 VIP Waiting Queue (Highest Priority First)"));
+        leftPanel.setBorder(BorderFactory.createTitledBorder("👑 VIP Waiting Queue"));
         JScrollPane queueScroll = new JScrollPane(queueTable);
         queueScroll.setPreferredSize(new Dimension(380, 350));
         leftPanel.add(queueScroll, BorderLayout.CENTER);
         add(leftPanel, BorderLayout.WEST);
 
-        // Right main panel
         JPanel rightPanel = new JPanel(new BorderLayout(6, 6));
         add(rightPanel, BorderLayout.CENTER);
 
-        // Room status panel
         JPanel roomPanel = new JPanel(new BorderLayout());
         roomPanel.setBorder(BorderFactory.createTitledBorder("🏨 Room Status"));
         JScrollPane roomScroll = new JScrollPane(roomTable);
@@ -95,7 +82,6 @@ public class VIPRoomAllocationGUI extends JPanel {
         roomPanel.add(roomScroll, BorderLayout.CENTER);
         rightPanel.add(roomPanel, BorderLayout.NORTH);
 
-        // Button panel
         JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 6, 6));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
@@ -117,13 +103,11 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         rightPanel.add(buttonPanel, BorderLayout.CENTER);
 
-        // Information area
         JScrollPane infoScroll = new JScrollPane(infoArea);
         infoScroll.setBorder(BorderFactory.createTitledBorder("📝 Information"));
         infoScroll.setPreferredSize(new Dimension(320, 120));
         rightPanel.add(infoScroll, BorderLayout.SOUTH);
 
-        // Button event bindings
         btnAddVIP.addActionListener(e -> showAddVIPDialog());
         btnAllocate.addActionListener(e -> allocateRoom());
         btnRelease.addActionListener(e -> releaseRoom());
@@ -145,13 +129,14 @@ public class VIPRoomAllocationGUI extends JPanel {
 
     private void refreshQueueTable() {
         queueTableModel.setRowCount(0);
-        List<VIPGuest> guests = control.getAllVIPGuests();
-        if (guests == null || guests.isEmpty()) {
+        VIPGuest[] guests = control.getAllVIPGuests();
+        if (guests == null || guests.length == 0) {
             return;
         }
 
-        List<VIPGuest> sorted = new java.util.ArrayList<>(guests);
-        control.quickSortByTier(sorted, 0, sorted.size() - 1);
+        VIPGuest[] sorted = new VIPGuest[guests.length];
+        System.arraycopy(guests, 0, sorted, 0, guests.length);
+        control.quickSortByTier(sorted, 0, sorted.length - 1);
 
         int rank = 1;
         for (VIPGuest guest : sorted) {
@@ -169,8 +154,8 @@ public class VIPRoomAllocationGUI extends JPanel {
 
     private void refreshRoomTable() {
         roomTableModel.setRowCount(0);
-        List<Room> rooms = control.getRooms();
-        if (rooms == null || rooms.isEmpty()) {
+        Room[] rooms = control.getRooms();
+        if (rooms == null || rooms.length == 0) {
             return;
         }
 
@@ -321,8 +306,8 @@ public class VIPRoomAllocationGUI extends JPanel {
         infoArea.setText("📋 Generating Queue Report...\n");
         control.generateQueueReport();
         infoArea.append("✅ Queue Report generated (check console output).");
-        
-        JOptionPane.showMessageDialog(this, 
+
+        JOptionPane.showMessageDialog(this,
             "Queue Report generated!\nCheck the console for detailed output.",
             "Report Generated",
             JOptionPane.INFORMATION_MESSAGE);
@@ -332,7 +317,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         infoArea.setText("📊 Generating Allocation Report...\n");
         control.generateAllocationReport();
         infoArea.append("✅ Allocation Report generated (check console output).");
-        
+
         JOptionPane.showMessageDialog(this,
             "Allocation Report generated!\nCheck the console for detailed output.",
             "Report Generated",

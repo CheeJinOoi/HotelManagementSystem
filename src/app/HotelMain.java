@@ -21,15 +21,16 @@ public class HotelMain {
         // 2. Create VIP module
         VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
 
-        // 3. Share the same room list with VIP module
-        vipControl.setRooms(housekeeping.getAllRoomsList());
+        // 3. ✅ Share rooms using array (JCF-compliant)
+        //    Changed from getAllRoomsList() to getAllRooms()
+        vipControl.setRooms(housekeeping.getAllRooms());
 
         // 4. Add test VIP data
         vipControl.addTestData();
 
         HotelUI hotelUI = new HotelUI();
 
-        //Front Desk uses SAME Walk-In data
+        // Front Desk uses SAME Walk-In data
         FrontDeskController frontDesk = new FrontDeskController(walkIn);
 
         // Save housekeeping state on JVM exit
@@ -44,7 +45,7 @@ public class HotelMain {
                     MessageUI.displayHotelExitMessage();
                     break;
                 case 1:
-                    HotelGUI.open(walkIn, housekeeping, vipControl,frontDesk);
+                    HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);
                     System.out.println("GUI opened. Close the window when finished.");
                     break;
                 case 2:
