@@ -20,43 +20,44 @@ public class WalkInBookingUI {
   private Scanner scanner = new Scanner(System.in);
 
   public int getMenuChoice() {
-    System.out.println("\n==============================================");
-    System.out.println(" TARUMT Resorts - Walk-In & Standard Booking");
-    System.out.println("==============================================");
-    System.out.println("1. Register walk-in guest");
-    System.out.println("2. Create standard booking");
-    System.out.println("3. Assign next guest to a room");
-    System.out.println("4. Cancel waiting reservation");
-    System.out.println("5. List pending queue");
-    System.out.println("6. Check-out guest");
-    System.out.println("7. Generate reports");
-    System.out.println("0. Return to hotel menu");
-    System.out.print("Enter choice: ");
+    ConsoleStyle.header("WALK-IN & BOOKING", "Register · assign · rooms · check-out · reports");
+    ConsoleStyle.menuItem(1, "Register walk-in guest");
+    ConsoleStyle.menuItem(2, "Create standard booking");
+    ConsoleStyle.menuItem(3, "Assign next guest to a room");
+    ConsoleStyle.menuItem(4, "Cancel waiting reservation");
+    ConsoleStyle.menuItem(5, "List pending queue");
+    ConsoleStyle.menuItem(6, "Check-out guest");
+    ConsoleStyle.menuItem(7, "Generate reports");
+    ConsoleStyle.menuItem(8, "View all room status");
+    ConsoleStyle.menuExit(0, "Return to hotel menu");
+    ConsoleStyle.prompt("Enter choice: ");
     return readIntAllowInvalid();
   }
 
   public int getReportMenuChoice() {
-    System.out.println("\nREPORT MENU");
-    System.out.println("1. Walk-in vs standard arrivals by date");
-    System.out.println("2. Unassigned demand vs available rooms");
-    System.out.println("0. Back");
-    System.out.print("Enter choice: ");
+    ConsoleStyle.header("REPORTS", "Walk-In & Standard Booking");
+    ConsoleStyle.menuItem(1, "Walk-in vs standard arrivals by date");
+    ConsoleStyle.menuItem(2, "Unassigned demand vs available rooms");
+    ConsoleStyle.menuExit(0, "Back");
+    ConsoleStyle.prompt("Enter choice: ");
     return readIntAllowInvalid();
   }
 
   public Guest inputGuestDetails() {
+    ConsoleStyle.clear();
+    ConsoleStyle.section("Guest details");
     String name = inputNonEmpty("Enter guest name: ");
     String identityNumber = inputNonEmpty("Enter IC / passport: ");
     String phone = inputNonEmpty("Enter phone number: ");
-    System.out.println();
+    ConsoleStyle.blank();
     return new Guest(name, identityNumber, phone);
   }
 
   public String inputRoomType() {
-    System.out.println("Room type:");
-    System.out.println("1. Standard");
-    System.out.println("2. Deluxe");
-    System.out.println("3. Suite");
+    ConsoleStyle.section("Room type");
+    ConsoleStyle.menuItem(1, "Standard");
+    ConsoleStyle.menuItem(2, "Deluxe");
+    ConsoleStyle.menuItem(3, "Suite");
     int choice = readInt("Enter choice: ");
     switch (choice) {
       case 1:
@@ -71,11 +72,11 @@ public class WalkInBookingUI {
   }
 
   public String inputRoomTypeFilter() {
-    System.out.println("Filter by room type:");
-    System.out.println("0. All types");
-    System.out.println("1. Standard");
-    System.out.println("2. Deluxe");
-    System.out.println("3. Suite");
+    ConsoleStyle.section("Filter by room type");
+    ConsoleStyle.menuItem(0, "All types");
+    ConsoleStyle.menuItem(1, "Standard");
+    ConsoleStyle.menuItem(2, "Deluxe");
+    ConsoleStyle.menuItem(3, "Suite");
     int choice = readInt("Enter choice: ");
     switch (choice) {
       case 1:
@@ -90,10 +91,10 @@ public class WalkInBookingUI {
   }
 
   public BookingType inputBookingTypeFilter() {
-    System.out.println("Filter by booking type:");
-    System.out.println("0. All");
-    System.out.println("1. Walk-In");
-    System.out.println("2. Standard");
+    ConsoleStyle.section("Filter by booking type");
+    ConsoleStyle.menuItem(0, "All");
+    ConsoleStyle.menuItem(1, "Walk-In");
+    ConsoleStyle.menuItem(2, "Standard");
     int choice = readInt("Enter choice: ");
     switch (choice) {
       case 1:
@@ -127,31 +128,42 @@ public class WalkInBookingUI {
   }
 
   public String inputConfirmationNumber() {
+    ConsoleStyle.clear();
     return inputNonEmpty("Enter 8-digit confirmation number: ");
   }
 
   public void listPendingReservations(String outputStr) {
-    System.out.println("\nPENDING QUEUE (front = next to assign)");
-    System.out.println(getReservationHeader());
-    System.out.println(outputStr);
+    ConsoleStyle.clear();
+    ConsoleStyle.section("Pending queue (front = next to assign)");
+    ConsoleStyle.tableHeader(getReservationHeader());
+    ConsoleStyle.tableRow(outputStr.trim());
+    ConsoleStyle.pause(scanner);
   }
 
   public void displayReservation(Reservation reservation) {
-    System.out.println("\nReservation details");
-    System.out.println(getDetailHeader());
-    System.out.println(reservation);
+    ConsoleStyle.clear();
+    ConsoleStyle.section("Reservation details");
+    ConsoleStyle.tableHeader(getDetailHeader());
+    ConsoleStyle.tableRow(reservation.toString());
     if (reservation.getGuest() != null) {
-      System.out.println("Guest IC/Passport: " + reservation.getGuest().getIdentityNumber());
-      System.out.println("Guest phone      : " + reservation.getGuest().getPhone());
+      ConsoleStyle.keyValue("IC/Passport", reservation.getGuest().getIdentityNumber());
+      ConsoleStyle.keyValue("Phone", reservation.getGuest().getPhone());
     }
+    ConsoleStyle.pause(scanner);
   }
 
   public void displayReport(String outputStr) {
-    System.out.println(outputStr);
+    ConsoleStyle.clear();
+    ConsoleStyle.section("Report");
+    ConsoleStyle.info(outputStr);
+    ConsoleStyle.pause(scanner);
   }
 
   public void displayMessage(String message) {
-    System.out.println("\n" + message);
+    ConsoleStyle.clear();
+    ConsoleStyle.section("Result");
+    ConsoleStyle.info(message);
+    ConsoleStyle.pause(scanner);
   }
 
   public String getReservationHeader() {
@@ -178,7 +190,7 @@ public class WalkInBookingUI {
     LocalDate today = LocalDate.now();
     String example = today.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     while (true) {
-      System.out.print(prompt + " (e.g. " + example + ", Enter = today): ");
+      ConsoleStyle.prompt(prompt + " (e.g. " + example + ", Enter = today): ");
       String text = scanner.nextLine().trim();
       if (text.isEmpty() || text.equalsIgnoreCase("today")) {
         return today;
@@ -187,7 +199,7 @@ public class WalkInBookingUI {
       if (parsed != null) {
         return parsed;
       }
-      System.out.println("Invalid date. Try " + example + " or " + today + ".");
+      ConsoleStyle.error("Invalid date. Try " + example + " or " + today + ".");
     }
   }
 
@@ -204,22 +216,22 @@ public class WalkInBookingUI {
 
   private String inputNonEmpty(String prompt) {
     while (true) {
-      System.out.print(prompt);
+      ConsoleStyle.prompt(prompt);
       String text = scanner.nextLine().trim();
       if (!text.isEmpty()) {
         return text;
       }
-      System.out.println("Value cannot be empty.");
+      ConsoleStyle.warn("Value cannot be empty.");
     }
   }
 
   private int readInt(String prompt) {
     while (true) {
-      System.out.print(prompt);
+      ConsoleStyle.prompt(prompt);
       try {
         return Integer.parseInt(scanner.nextLine().trim());
       } catch (NumberFormatException ex) {
-        System.out.println("Invalid number. Try again.");
+        ConsoleStyle.error("Invalid number. Try again.");
       }
     }
   }

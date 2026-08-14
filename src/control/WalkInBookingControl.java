@@ -90,6 +90,9 @@ public class WalkInBookingControl {
         case 7:
           runReports();
           break;
+        case 8:
+          bookingUI.displayReport(formatRoomStatusBoard());
+          break;
         default:
           MessageUI.displayInvalidChoiceMessage();
       }
@@ -322,6 +325,70 @@ public class WalkInBookingControl {
         + " is now dirty and sent to housekeeping.";
   }
 
+  public Room[] getAllRooms() {
+    return housekeeping.getAllRooms();
+  }
+
+  /**
+   * Assignment board: every room with housekeeping status, occupancy,
+   * and whether Walk-In can assign it right now.
+   */
+  public String formatRoomStatusBoard() {
+    Room[] rooms = housekeeping.getAllRooms();
+    StringBuilder report = new StringBuilder();
+    report.append("==============================================================\n");
+    report.append(" ROOM STATUS BOARD (Walk-In assignment)\n");
+    report.append(" A room can be assigned only when it is Ready for Check-In and free.\n");
+    report.append("==============================================================\n");
+    report.append(String.format("%-8s %-10s %-22s %-10s %-12s %-16s\n",
+        "Room", "Type", "Housekeeping", "Occupancy", "Can Assign", "Assigned To"));
+
+    int readyCount = 0;
+    int occupiedCount = 0;
+    if (rooms != null) {
+      for (int i = 0; i < rooms.length; i++) {
+        Room room = rooms[i];
+        if (room == null) {
+          continue;
+        }
+        boolean assignable = room.isReadyForAssignment();
+        if (assignable) {
+          readyCount++;
+        }
+        if (room.isOccupied()) {
+          occupiedCount++;
+        }
+        String assigned = "-";
+        if (room.getAssignedConfirmationNumber() != null) {
+          Reservation reservation = findReservation(room.getAssignedConfirmationNumber());
+          if (reservation != null && reservation.getGuest() != null) {
+            assigned = reservation.getGuest().getName();
+          } else {
+            assigned = room.getAssignedConfirmationNumber();
+          }
+        }
+        report.append(String.format("%-8s %-10s %-22s %-10s %-12s %-16s\n",
+            room.getRoomId(),
+            room.getRoomType(),
+            room.getCurrentStatus(),
+            room.isOccupied() ? "Occupied" : "Free",
+            assignable ? "YES" : "No",
+            assigned));
+      }
+    }
+
+    report.append("--------------------------------------------------------------\n");
+    report.append(String.format("%-10s %-10s %-12s %-12s\n", "Room Type", "Rooms", "Ready/Free", "Waiting"));
+    appendTypeSummary(report, "Standard", null);
+    appendTypeSummary(report, "Deluxe", null);
+    appendTypeSummary(report, "Suite", null);
+    report.append("--------------------------------------------------------------\n");
+    report.append("Ready to assign now : ").append(readyCount).append("\n");
+    report.append("Currently occupied  : ").append(occupiedCount).append("\n");
+    report.append("Guests still waiting: ").append(pendingQueue.getNumberOfEntries()).append("\n");
+    return report.toString();
+  }
+
   public Reservation[] getPendingReservations() {
     return copyQueue(pendingQueue);
   }
@@ -404,14 +471,10 @@ public class WalkInBookingControl {
   }
 
   /**
-   * Report 1: filter history by check-in date range and booking type, then sort by booked time.
+   * Filter history by check-in date range and booking type, then sort by booked time.
    * Uses a copied array + insertion sort (not Collections.sort).
    */
-  public String generateArrivalsReport(LocalDate startDate, LocalDate endDate, BookingType typeFilter) {
-    if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
-      return "\nStart date cannot be after end date.\n";
-    }
-
+  public Reservation[] getFilteredArrivals(LocalDate startDate, LocalDate endDate, BookingType typeFilter) {
     Reservation[] all = copyQueue(historyQueue);
     int matchCount = 0;
     for (int i = 0; i < all.length; i++) {
@@ -429,6 +492,80 @@ public class WalkInBookingControl {
       }
     }
     insertionSortByBookedAt(filtered);
+    return filtered;
+  }
+
+  public Reservation[] getFilteredDemand(String roomTypeFilter) {
+    Reservation[] pending = copyQueue(pendingQueue);
+    int matchCount = 0;
+    for (int i = 0; i < pending.length; i++) {
+      if (matchesRoomType(pending[i], roomTypeFilter)) {
+        matchCount++;
+      }
+    }
+
+    Reservation[] filtered = new Reservation[matchCount];
+    int index = 0;
+    for (int i = 0; i < pending.length; i++) {
+      if (matchesRoomType(pending[i], roomTypeFilter)) {
+        filtered[index] = pending[i];
+        index++;
+      }
+    }
+    insertionSortByBookedAt(filtered);
+    return filtered;
+  }
+
+  public int getPendingQueuePosition(Reservation reservation) {
+    if (reservation == null) {
+      return -1;
+    }
+    return pendingQueue.indexOf(reservation);
+  }
+
+  public String getAssignmentOutlook(Reservation reservation) {
+    return describeAssignmentOutlook(reservation, getPendingQueuePosition(reservation));
+  }
+
+  public int countRoomsOfType(String roomType) {
+    int count = 0;
+    Room[] allRooms = housekeeping.getAllRooms();
+    for (int i = 0; i < allRooms.length; i++) {
+      if (allRooms[i].getRoomType().equals(roomType)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  public int countAvailableRoomsOfType(String roomType) {
+    int count = 0;
+    Room[] allRooms = housekeeping.getAllRooms();
+    for (int i = 0; i < allRooms.length; i++) {
+      if (allRooms[i].getRoomType().equals(roomType) && allRooms[i].isReadyForAssignment()) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  public int countWaitingOfType(String roomType) {
+    int count = 0;
+    for (int i = 1; i <= pendingQueue.getNumberOfEntries(); i++) {
+      Reservation reservation = pendingQueue.getEntry(i);
+      if (reservation != null && roomType.equals(reservation.getRoomType())) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  public String generateArrivalsReport(LocalDate startDate, LocalDate endDate, BookingType typeFilter) {
+    if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+      return "\nStart date cannot be after end date.\n";
+    }
+
+    Reservation[] filtered = getFilteredArrivals(startDate, endDate, typeFilter);
 
     int walkInCount = 0;
     int standardCount = 0;
@@ -481,23 +618,7 @@ public class WalkInBookingControl {
    * Shows who is blocked because no matching Ready room is free.
    */
   public String generateDemandReport(String roomTypeFilter) {
-    Reservation[] pending = copyQueue(pendingQueue);
-    int matchCount = 0;
-    for (int i = 0; i < pending.length; i++) {
-      if (matchesRoomType(pending[i], roomTypeFilter)) {
-        matchCount++;
-      }
-    }
-
-    Reservation[] filtered = new Reservation[matchCount];
-    int index = 0;
-    for (int i = 0; i < pending.length; i++) {
-      if (matchesRoomType(pending[i], roomTypeFilter)) {
-        filtered[index] = pending[i];
-        index++;
-      }
-    }
-    insertionSortByBookedAt(filtered);
+    Reservation[] filtered = getFilteredDemand(roomTypeFilter);
 
     StringBuilder report = new StringBuilder();
     report.append("\n==============================================================\n");
@@ -587,39 +708,6 @@ public class WalkInBookingControl {
 
   private Room findRoomById(String roomId) {
     return housekeeping.findRoomById(roomId);
-  }
-
-  private int countRoomsOfType(String roomType) {
-    int count = 0;
-    Room[] allRooms = housekeeping.getAllRooms();
-    for (int i = 0; i < allRooms.length; i++) {
-      if (allRooms[i].getRoomType().equals(roomType)) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  private int countAvailableRoomsOfType(String roomType) {
-    int count = 0;
-    Room[] allRooms = housekeeping.getAllRooms();
-    for (int i = 0; i < allRooms.length; i++) {
-      if (allRooms[i].getRoomType().equals(roomType) && allRooms[i].isReadyForAssignment()) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  private int countWaitingOfType(String roomType) {
-    int count = 0;
-    for (int i = 1; i <= pendingQueue.getNumberOfEntries(); i++) {
-      Reservation reservation = pendingQueue.getEntry(i);
-      if (reservation != null && roomType.equals(reservation.getRoomType())) {
-        count++;
-      }
-    }
-    return count;
   }
 
   private Reservation findInQueue(QueueInterface<Reservation> queue, String confirmationNumber) {

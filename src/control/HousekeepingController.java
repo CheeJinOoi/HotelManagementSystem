@@ -5,6 +5,7 @@ import entity.Room;
 import entity.Stack;
 import entity.StatusEntry;
 import entity.UndoRecord;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,7 +14,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 /**
  * HousekeepingController.java
@@ -161,28 +161,31 @@ public class HousekeepingController {
         }
 
         clearRooms();
-        List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
         Room currentRoom = null;
 
-        for (String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-
-            String[] parts = line.split("\\|", -1);
-            if (parts[0].equals("ROOM")) {
-                if (currentRoom != null) {
-                    addRoom(currentRoom);
+        // Read line-by-line — do not use java.util.List (Files.readAllLines) per assignment Q&A.
+        try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
                 }
-                currentRoom = new Room(parts[1], parts[2], HousekeepingStatus.valueOf(parts[3]));
-            } else if (parts[0].equals("ENTRY") && currentRoom != null) {
-                StatusEntry entry = new StatusEntry(
-                        HousekeepingStatus.valueOf(parts[1]),
-                        LocalDateTime.parse(parts[2], DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                        parts[3],
-                        parts[4]
-                );
-                currentRoom.recordStatus(entry);
+
+                String[] parts = line.split("\\|", -1);
+                if (parts[0].equals("ROOM")) {
+                    if (currentRoom != null) {
+                        addRoom(currentRoom);
+                    }
+                    currentRoom = new Room(parts[1], parts[2], HousekeepingStatus.valueOf(parts[3]));
+                } else if (parts[0].equals("ENTRY") && currentRoom != null) {
+                    StatusEntry entry = new StatusEntry(
+                            HousekeepingStatus.valueOf(parts[1]),
+                            LocalDateTime.parse(parts[2], DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            parts[3],
+                            parts[4]
+                    );
+                    currentRoom.recordStatus(entry);
+                }
             }
         }
 

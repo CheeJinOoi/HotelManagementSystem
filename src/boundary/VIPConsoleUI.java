@@ -28,157 +28,172 @@ public class VIPConsoleUI {
 
             switch (option) {
                 case "1":
+                    ConsoleStyle.clear();
                     addVIPGuest();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "2":
+                    ConsoleStyle.clear();
                     allocateRoom();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "3":
+                    ConsoleStyle.clear();
                     control.viewQueue();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "4":
+                    ConsoleStyle.clear();
                     control.viewRooms();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "5":
+                    ConsoleStyle.clear();
                     releaseRoom();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "6":
+                    ConsoleStyle.clear();
                     searchVIP();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "7":
+                    ConsoleStyle.clear();
                     control.generateQueueReport();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "8":
+                    ConsoleStyle.clear();
                     control.generateAllocationReport();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "0":
-                    System.out.println("Returning to hotel menu...");
+                    ConsoleStyle.info("Returning to hotel menu...");
                     return;
                 default:
-                    System.out.println("Invalid option. Please try again.");
+                    ConsoleStyle.error("Invalid option. Please try again.");
+                    ConsoleStyle.pause(scanner);
             }
         }
     }
 
     private void printMenu() {
-        System.out.println("\n==============================================");
-        System.out.println(" ⭐ VIP Room Allocation System");
-        System.out.println("==============================================");
-        System.out.println("1. Add VIP Guest");
-        System.out.println("2. Allocate Room (Highest Priority)");
-        System.out.println("3. View VIP Waiting Queue");
-        System.out.println("4. View Room Status");
-        System.out.println("5. Release Room");
-        System.out.println("6. Search VIP by ID");
-        System.out.println("7. Generate VIP Queue Report");
-        System.out.println("8. Generate Allocation Report");
-        System.out.println("0. Return to hotel menu");
-        System.out.print("Choose an option: ");
+        ConsoleStyle.header("VIP ROOM ALLOCATION", "Priority queue · loyalty tiers · rooms");
+        ConsoleStyle.menuItem(1, "Add VIP Guest");
+        ConsoleStyle.menuItem(2, "Allocate Room (Highest Priority)");
+        ConsoleStyle.menuItem(3, "View VIP Waiting Queue");
+        ConsoleStyle.menuItem(4, "View Room Status");
+        ConsoleStyle.menuItem(5, "Release Room");
+        ConsoleStyle.menuItem(6, "Search VIP by ID");
+        ConsoleStyle.menuItem(7, "Generate VIP Queue Report");
+        ConsoleStyle.menuItem(8, "Generate Allocation Report");
+        ConsoleStyle.menuExit(0, "Return to hotel menu");
+        ConsoleStyle.prompt("Choose an option: ");
     }
 
     private void addVIPGuest() {
-        System.out.println("\n--- Add VIP Guest ---");
+        ConsoleStyle.section("Add VIP Guest");
 
-        System.out.print("Enter name: ");
+        ConsoleStyle.prompt("Enter name: ");
         String name = scanner.nextLine().trim();
 
-        System.out.print("Enter IC/Passport: ");
+        ConsoleStyle.prompt("Enter IC/Passport: ");
         String ic = scanner.nextLine().trim();
 
-        System.out.print("Enter phone: ");
+        ConsoleStyle.prompt("Enter phone: ");
         String phone = scanner.nextLine().trim();
 
-        System.out.print("Enter membership ID (e.g., VIP001): ");
+        ConsoleStyle.prompt("Enter membership ID (e.g., VIP001): ");
         String membershipId = scanner.nextLine().trim();
 
-        System.out.println("Select tier:");
+        ConsoleStyle.info("Select tier:");
         VIPGuest.MembershipTier[] tiers = VIPGuest.MembershipTier.values();
         for (int i = 0; i < tiers.length; i++) {
-            System.out.println("  " + (i + 1) + ". " + tiers[i].getDisplay());
+            ConsoleStyle.menuItem(i + 1, tiers[i].getDisplay());
         }
-        System.out.print("Enter choice (1-" + tiers.length + "): ");
+        ConsoleStyle.prompt("Enter choice (1-" + tiers.length + "): ");
         int tierChoice = -1;
         try {
             tierChoice = Integer.parseInt(scanner.nextLine().trim()) - 1;
         } catch (NumberFormatException e) {
-            System.out.println("Invalid number. Defaulting to PLATINUM.");
+            ConsoleStyle.warn("Invalid number. Defaulting to PLATINUM.");
             tierChoice = 2;
         }
         if (tierChoice < 0 || tierChoice >= tiers.length) {
-            System.out.println("Invalid choice. Defaulting to PLATINUM.");
+            ConsoleStyle.warn("Invalid choice. Defaulting to PLATINUM.");
             tierChoice = 2;
         }
         VIPGuest.MembershipTier tier = tiers[tierChoice];
 
-        System.out.print("Enter loyalty points: ");
+        ConsoleStyle.prompt("Enter loyalty points: ");
         int points = 0;
         try {
             points = Integer.parseInt(scanner.nextLine().trim());
         } catch (NumberFormatException e) {
-            System.out.println("Invalid number. Setting points to 0.");
+            ConsoleStyle.warn("Invalid number. Setting points to 0.");
         }
 
-        System.out.print("Enter email: ");
+        ConsoleStyle.prompt("Enter email: ");
         String email = scanner.nextLine().trim();
 
         VIPGuest guest = new VIPGuest(name, ic, phone, membershipId, tier, points, email);
         control.addVIPGuest(guest);
-        System.out.println("✅ VIP Guest added successfully!");
+        ConsoleStyle.success("VIP guest added successfully.");
     }
 
     private void allocateRoom() {
         if (control.getQueueSize() == 0) {
-            System.out.println("⚠️ No VIP guests waiting.");
+            ConsoleStyle.warn("No VIP guests waiting.");
             return;
         }
 
-        System.out.print("Allocate room to highest priority VIP? (y/n): ");
+        ConsoleStyle.prompt("Allocate room to highest priority VIP? (y/n): ");
         String confirm = scanner.nextLine().trim().toLowerCase();
         if (confirm.equals("y") || confirm.equals("yes")) {
             control.allocateRoom();
         } else {
-            System.out.println("Allocation cancelled.");
+            ConsoleStyle.info("Allocation cancelled.");
         }
     }
 
     private void releaseRoom() {
         control.viewRooms();
-        System.out.print("Enter room ID to release: ");
+        ConsoleStyle.prompt("Enter room ID to release: ");
         String roomId = scanner.nextLine().trim();
         if (roomId.isEmpty()) {
-            System.out.println("Room ID cannot be empty.");
+            ConsoleStyle.error("Room ID cannot be empty.");
             return;
         }
 
-        System.out.print("Release room " + roomId + "? (y/n): ");
+        ConsoleStyle.prompt("Release room " + roomId + "? (y/n): ");
         String confirm = scanner.nextLine().trim().toLowerCase();
         if (confirm.equals("y") || confirm.equals("yes")) {
             control.releaseRoom(roomId);
         } else {
-            System.out.println("Release cancelled.");
+            ConsoleStyle.info("Release cancelled.");
         }
     }
 
     private void searchVIP() {
-        System.out.print("Enter membership ID to search: ");
+        ConsoleStyle.prompt("Enter membership ID to search: ");
         String id = scanner.nextLine().trim();
         if (id.isEmpty()) {
-            System.out.println("Membership ID cannot be empty.");
+            ConsoleStyle.error("Membership ID cannot be empty.");
             return;
         }
 
         VIPGuest guest = control.searchByMembershipId(id);
         if (guest != null) {
-            System.out.println("\n✅ VIP Guest Found:");
-            System.out.println("   Name        : " + guest.getName());
-            System.out.println("   IC/Passport : " + guest.getIdentityNumber());
-            System.out.println("   Phone       : " + guest.getPhone());
-            System.out.println("   Membership  : " + guest.getMembershipId());
-            System.out.println("   Tier        : " + guest.getTier().getDisplay());
-            System.out.println("   Points      : " + guest.getLoyaltyPoints());
-            System.out.println("   Email       : " + guest.getEmail());
+            ConsoleStyle.section("VIP guest found");
+            ConsoleStyle.keyValue("Name", guest.getName());
+            ConsoleStyle.keyValue("IC/Passport", guest.getIdentityNumber());
+            ConsoleStyle.keyValue("Phone", guest.getPhone());
+            ConsoleStyle.keyValue("Membership", guest.getMembershipId());
+            ConsoleStyle.keyValue("Tier", guest.getTier().getDisplay());
+            ConsoleStyle.keyValue("Points", String.valueOf(guest.getLoyaltyPoints()));
+            ConsoleStyle.keyValue("Email", guest.getEmail());
         } else {
-            System.out.println("❌ VIP not found with ID: " + id);
+            ConsoleStyle.error("VIP not found with ID: " + id);
         }
     }
 }

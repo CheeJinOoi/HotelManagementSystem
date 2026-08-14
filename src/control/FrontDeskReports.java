@@ -36,22 +36,16 @@ public class FrontDeskReports {
     // RESERVATION REPORT
     // =====================================================
 
-    public String generateReservationReport() {
+    public Reservation[] getActiveReservationsSortedByCheckIn() {
 
         Reservation[] all =
                 controller.getAllReservations();
 
         if (all == null || all.length == 0) {
 
-            return
-                    "\nNo reservation data available.\n";
+            return new Reservation[0];
         }
 
-        /*
-         * Filter:
-         *
-         * Only active reservations
-         */
         int count = 0;
 
         for (int i = 0;
@@ -84,13 +78,26 @@ public class FrontDeskReports {
             }
         }
 
-        /*
-         * Sorting:
-         *
-         * Sort by check-in date.
-         */
         insertionSortByCheckInDate(
                 filtered);
+
+        return filtered;
+    }
+
+
+    public String generateReservationReport() {
+
+        Reservation[] all =
+                controller.getAllReservations();
+
+        if (all == null || all.length == 0) {
+
+            return
+                    "\nNo reservation data available.\n";
+        }
+
+        Reservation[] filtered =
+                getActiveReservationsSortedByCheckIn();
 
         StringBuilder report =
                 new StringBuilder();

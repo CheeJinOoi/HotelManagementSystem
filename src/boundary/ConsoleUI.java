@@ -26,65 +26,74 @@ public class ConsoleUI {
             String option = scanner.nextLine().trim();
             switch (option) {
                 case "1":
+                    ConsoleStyle.clear();
                     updateRoomStatus();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "2":
+                    ConsoleStyle.clear();
                     undoLastAction();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "3":
+                    ConsoleStyle.clear();
                     redoLastAction();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "4":
+                    ConsoleStyle.clear();
                     viewAllRooms();
+                    ConsoleStyle.pause(scanner);
                     break;
                 case "0":
-                    System.out.println("Returning to hotel menu...");
+                    ConsoleStyle.info("Returning to hotel menu...");
                     return;
                 default:
-                    System.out.println("Invalid option. Please try again.");
+                    ConsoleStyle.error("Invalid option. Please try again.");
+                    ConsoleStyle.pause(scanner);
             }
         }
     }
 
     private void printMenu() {
-        System.out.println("=== TARUMT Housekeeping Menu ===");
-        System.out.println("1. Update Room Status");
-        System.out.println("2. Undo Last Action");
-        System.out.println("3. Redo Last Action");
-        System.out.println("4. View All Rooms");
-        System.out.println("0. Return to hotel menu");
-        System.out.print("Choose an option: ");
+        ConsoleStyle.header("HOUSEKEEPING", "Room status · undo / redo · task log");
+        ConsoleStyle.menuItem(1, "Update Room Status");
+        ConsoleStyle.menuItem(2, "Undo Last Action");
+        ConsoleStyle.menuItem(3, "Redo Last Action");
+        ConsoleStyle.menuItem(4, "View All Rooms");
+        ConsoleStyle.menuExit(0, "Return to hotel menu");
+        ConsoleStyle.prompt("Choose an option: ");
     }
 
     private void updateRoomStatus() {
         viewAllRooms();
-        System.out.print("Enter room ID: ");
+        ConsoleStyle.prompt("Enter room ID: ");
         String roomId = scanner.nextLine().trim();
-        System.out.println("Choose new status:");
+        ConsoleStyle.section("Select new status");
         HousekeepingStatus[] statuses = HousekeepingStatus.values();
         for (int i = 0; i < statuses.length; i++) {
-            System.out.println((i + 1) + ". " + statuses[i]);
+            ConsoleStyle.menuItem(i + 1, statuses[i].toString());
         }
 
         int statusIndex = -1;
         while (true) {
-            System.out.print("Enter status number: ");
+            ConsoleStyle.prompt("Enter status number: ");
             String input = scanner.nextLine().trim();
             try {
                 statusIndex = Integer.parseInt(input) - 1;
                 if (statusIndex >= 0 && statusIndex < statuses.length) {
                     break;
                 }
-                System.out.println("Please enter a number between 1 and " + statuses.length + ".");
+                ConsoleStyle.warn("Please enter a number between 1 and " + statuses.length + ".");
             } catch (NumberFormatException e) {
-                System.out.println("Invalid number. Please enter a valid status number.");
+                ConsoleStyle.error("Invalid number. Please enter a valid status number.");
             }
         }
 
         HousekeepingStatus newStatus = statuses[statusIndex];
-        System.out.print("Enter staff name: ");
+        ConsoleStyle.prompt("Enter staff name: ");
         String staffName = scanner.nextLine().trim();
-        System.out.print("Enter note: ");
+        ConsoleStyle.prompt("Enter note: ");
         String note = scanner.nextLine().trim();
 
         String result = controller.updateRoomStatus(roomId, newStatus, staffName, note);

@@ -1,5 +1,6 @@
 package app;
 
+import boundary.ConsoleStyle;
 import boundary.ConsoleUI;
 import boundary.HotelGUI;
 import boundary.HotelUI;
@@ -39,7 +40,7 @@ public class HotelMain {
                     break;
                 case 1:
                     HotelGUI.open(walkIn, housekeeping, vipControl, frontDesk);
-                    System.out.println("GUI opened. Close the window when finished.");
+                    ConsoleStyle.info("GUI opening... close the window when finished.");
                     break;
                 case 2:
                     walkIn.runWalkInBooking();

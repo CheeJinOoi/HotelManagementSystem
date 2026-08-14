@@ -5,42 +5,57 @@ import entity.HousekeepingStatus;
 import entity.Room;
 import entity.StatusEntry;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 /**
  * HousekeepingGUI.java
  * BOUNDARY (GUI panel): Housekeeping tab inside HotelGUI.
- *
- * Left side  = room list with status / occupied flag
- * Right side = update, undo, redo, details
- *
- * Undo/Redo ask for confirmation before changing anything.
  */
 public class HousekeepingGUI extends JPanel {
 
+  private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
   private final HousekeepingController controller;
-  private final DefaultListModel<String> roomListModel = new DefaultListModel<>();
-  private final JList<String> roomList = new JList<>(roomListModel);
-  private final JTextArea infoArea = new JTextArea();
+  private final DefaultTableModel roomTableModel;
+  private final JTable roomTable;
+  private final JTextArea infoArea;
   private Runnable onDataChanged;
 
   public HousekeepingGUI(HousekeepingController controller) {
     this.controller = controller;
-    setLayout(new BorderLayout(8, 8));
+    UiTheme.styleRoot(this);
+    setLayout(new BorderLayout(12, 12));
+
+    roomTableModel = new DefaultTableModel(
+        new String[] { "Room ID", "Type", "Status", "Occupancy", "Assigned To", "Updated By", "Updated At" }, 0) {
+      @Override
+      public boolean isCellEditable(int row, int column) {
+        return false;
+      }
+    };
+    roomTable = new JTable(roomTableModel);
+    UiTheme.styleTable(roomTable);
+    styleStatusColumn(roomTable);
+
+    infoArea = new JTextArea();
+    UiTheme.styleInfoArea(infoArea);
+
     initComponents();
     refreshRooms();
   }
@@ -50,7 +65,12 @@ public class HousekeepingGUI extends JPanel {
   }
 
   public void refresh() {
+    String selected = selectedRoomId();
     refreshRooms();
+    if (selected != null) {
+      selectRoom(selected);
+      showSelectedDetails();
+    }
   }
 
   private void notifyDataChanged() {
@@ -60,33 +80,22 @@ public class HousekeepingGUI extends JPanel {
   }
 
   private void initComponents() {
-    roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-    JScrollPane listScroll = new JScrollPane(roomList);
-    listScroll.setPreferredSize(new Dimension(280, 300));
-    listScroll.setBorder(javax.swing.BorderFactory.createTitledBorder("Rooms"));
-    add(listScroll, BorderLayout.WEST);
+    JButton btnUpdate = UiTheme.primaryButton("Update Status");
+    JButton btnUndo = UiTheme.secondaryButton("Undo Last Action");
+    JButton btnRedo = UiTheme.secondaryButton("Redo Last Action");
+    JButton btnDetails = UiTheme.accentButton("View Details");
+    JButton btnRefresh = UiTheme.secondaryButton("Refresh Rooms");
+    add(UiTheme.buttonRow(btnUpdate, btnUndo, btnRedo, btnDetails, btnRefresh), BorderLayout.NORTH);
 
-    JPanel right = new JPanel(new BorderLayout(6, 6));
-    add(right, BorderLayout.CENTER);
+    JScrollPane tableScroll = new JScrollPane(roomTable);
+    tableScroll.setPreferredSize(new Dimension(720, 420));
+    UiTheme.styleListScroll(tableScroll);
+    add(UiTheme.titledPanel("Room Status", tableScroll), BorderLayout.CENTER);
 
-    JPanel buttons = new JPanel(new GridLayout(0, 1, 6, 6));
-    JButton btnUpdate = new JButton("Update Status");
-    JButton btnUndo = new JButton("Undo Last Action");
-    JButton btnRedo = new JButton("Redo Last Action");
-    JButton btnDetails = new JButton("View Details");
-    JButton btnRefresh = new JButton("Refresh Rooms");
-    buttons.add(btnUpdate);
-    buttons.add(btnUndo);
-    buttons.add(btnRedo);
-    buttons.add(btnDetails);
-    buttons.add(btnRefresh);
-    right.add(buttons, BorderLayout.NORTH);
-
-    infoArea.setEditable(false);
-    infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
     JScrollPane infoScroll = new JScrollPane(infoArea);
-    infoScroll.setBorder(javax.swing.BorderFactory.createTitledBorder("Room details"));
-    right.add(infoScroll, BorderLayout.CENTER);
+    infoScroll.setPreferredSize(new Dimension(720, 160));
+    UiTheme.styleListScroll(infoScroll);
+    add(UiTheme.titledPanel("Room details / Task log", infoScroll), BorderLayout.SOUTH);
 
     btnUpdate.addActionListener(e -> showUpdateDialog());
     btnUndo.addActionListener(e -> {
@@ -95,7 +104,7 @@ public class HousekeepingGUI extends JPanel {
       }
       String res = controller.undoLastAction();
       JOptionPane.showMessageDialog(this, res);
-      refreshRooms();
+      refresh();
       notifyDataChanged();
     });
     btnRedo.addActionListener(e -> {
@@ -104,14 +113,23 @@ public class HousekeepingGUI extends JPanel {
       }
       String res = controller.redoLastAction();
       JOptionPane.showMessageDialog(this, res);
-      refreshRooms();
+      refresh();
       notifyDataChanged();
     });
     btnDetails.addActionListener(e -> showSelectedDetails());
-    btnRefresh.addActionListener(e -> refreshRooms());
-    roomList.addListSelectionListener(e -> {
+    btnRefresh.addActionListener(e -> refresh());
+
+    roomTable.getSelectionModel().addListSelectionListener(e -> {
       if (!e.getValueIsAdjusting()) {
         showSelectedDetails();
+      }
+    });
+    roomTable.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        if (e.getClickCount() == 2) {
+          showUpdateDialog();
+        }
       }
     });
   }
@@ -127,29 +145,31 @@ public class HousekeepingGUI extends JPanel {
   }
 
   private void showSelectedDetails() {
-    String selected = roomList.getSelectedValue();
-    if (selected == null) {
+    String roomId = selectedRoomId();
+    if (roomId == null) {
+      infoArea.setText(statusSummary());
       return;
     }
-    String roomId = selected.split(" - ")[0];
     Room room = controller.findRoomById(roomId);
     if (room == null) {
       infoArea.setText("Room not found.");
       return;
     }
     StringBuilder sb = new StringBuilder();
-    sb.append("Room ID: ").append(room.getRoomId()).append('\n');
-    sb.append("Room Type: ").append(room.getRoomType()).append('\n');
-    sb.append("Current Status: ").append(room.getCurrentStatus()).append('\n');
-    sb.append("Occupied: ").append(room.isOccupied()
-        ? "Yes (" + room.getAssignedConfirmationNumber() + ")" : "No").append('\n');
+    sb.append("Room ID        : ").append(room.getRoomId()).append('\n');
+    sb.append("Room Type      : ").append(room.getRoomType()).append('\n');
+    sb.append("Current Status : ").append(room.getCurrentStatus()).append('\n');
+    sb.append("Occupancy      : ").append(room.isOccupied()
+        ? "Occupied (" + room.getAssignedConfirmationNumber() + ")" : "Free").append('\n');
+    sb.append("Ready to assign: ").append(room.isReadyForAssignment() ? "Yes" : "No").append('\n');
     sb.append("Last Updated By: ").append(room.getLastUpdatedBy()).append('\n');
-    sb.append("Last Updated Time: ").append(room.getLastUpdatedTime()).append('\n');
+    sb.append("Last Updated   : ").append(room.getLastUpdatedTime() == null
+        ? "-" : room.getLastUpdatedTime().format(TIME_FMT)).append('\n');
     sb.append("\nTask Log:\n");
-    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     StatusEntry[] entries = room.getTaskLog().toArray();
-    for (StatusEntry en : entries) {
-      sb.append(" - ").append(en.getTimestamp().format(fmt))
+    for (int i = 0; i < entries.length; i++) {
+      StatusEntry en = entries[i];
+      sb.append(" - ").append(en.getTimestamp().format(TIME_FMT))
           .append(" | ").append(en.getStatus())
           .append(" | ").append(en.getUpdatedBy() == null ? "Unknown" : en.getUpdatedBy())
           .append(" | ").append(en.getNote() == null ? "" : en.getNote())
@@ -159,22 +179,24 @@ public class HousekeepingGUI extends JPanel {
   }
 
   private void showUpdateDialog() {
-    String selected = roomList.getSelectedValue();
-    if (selected == null) {
+    String roomId = selectedRoomId();
+    if (roomId == null) {
       JOptionPane.showMessageDialog(this, "Select a room to update.");
       return;
     }
-    String roomId = selected.split(" - ")[0];
 
     JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
+    panel.setBackground(UiTheme.SURFACE);
     JComboBox<HousekeepingStatus> combo = new JComboBox<>(HousekeepingStatus.values());
-    panel.add(new JLabel("Select new status:"));
+    panel.add(UiTheme.bodyLabel("Select new status:"));
     panel.add(combo);
     JTextField staffField = new JTextField();
-    panel.add(new JLabel("Staff name:"));
+    UiTheme.styleTextField(staffField);
+    panel.add(UiTheme.bodyLabel("Staff name:"));
     panel.add(staffField);
     JTextField noteField = new JTextField();
-    panel.add(new JLabel("Note:"));
+    UiTheme.styleTextField(noteField);
+    panel.add(UiTheme.bodyLabel("Note:"));
     panel.add(noteField);
 
     int result = JOptionPane.showConfirmDialog(this, panel, "Update Room " + roomId,
@@ -185,17 +207,112 @@ public class HousekeepingGUI extends JPanel {
       String note = noteField.getText().trim();
       String res = controller.updateRoomStatus(roomId, newStatus, staff, note);
       JOptionPane.showMessageDialog(this, res);
-      refreshRooms();
+      refresh();
       notifyDataChanged();
     }
   }
 
   private void refreshRooms() {
-    roomListModel.clear();
+    String selected = selectedRoomId();
+    roomTableModel.setRowCount(0);
     Room[] rooms = controller.getAllRooms();
-    for (Room r : rooms) {
-      roomListModel.addElement(r.getRoomId() + " - " + r.getCurrentStatus()
-          + (r.isOccupied() ? " [Occupied]" : ""));
+    for (int i = 0; i < rooms.length; i++) {
+      Room room = rooms[i];
+      roomTableModel.addRow(new Object[] {
+          room.getRoomId(),
+          room.getRoomType(),
+          room.getCurrentStatus(),
+          room.isOccupied() ? "Occupied" : "Free",
+          room.isOccupied() && room.getAssignedConfirmationNumber() != null
+              ? room.getAssignedConfirmationNumber() : "-",
+          room.getLastUpdatedBy(),
+          room.getLastUpdatedTime() == null ? "-" : room.getLastUpdatedTime().format(TIME_FMT)
+      });
     }
+    if (selected != null) {
+      selectRoom(selected);
+    } else if (roomTableModel.getRowCount() > 0 && roomTable.getSelectedRow() < 0) {
+      roomTable.setRowSelectionInterval(0, 0);
+    }
+    if (roomTable.getSelectedRow() < 0) {
+      infoArea.setText(statusSummary());
+    }
+  }
+
+  private String statusSummary() {
+    Room[] rooms = controller.getAllRooms();
+    int dirty = 0;
+    int cleaning = 0;
+    int inspected = 0;
+    int ready = 0;
+    int occupied = 0;
+    for (int i = 0; i < rooms.length; i++) {
+      HousekeepingStatus status = rooms[i].getCurrentStatus();
+      if (status == HousekeepingStatus.DIRTY) {
+        dirty++;
+      } else if (status == HousekeepingStatus.CLEANING_IN_PROGRESS) {
+        cleaning++;
+      } else if (status == HousekeepingStatus.INSPECTED) {
+        inspected++;
+      } else if (status == HousekeepingStatus.READY_FOR_CHECKIN) {
+        ready++;
+      }
+      if (rooms[i].isOccupied()) {
+        occupied++;
+      }
+    }
+    return "Room status summary\n"
+        + "Total rooms : " + rooms.length + "\n"
+        + "Dirty       : " + dirty + "\n"
+        + "Cleaning    : " + cleaning + "\n"
+        + "Inspected   : " + inspected + "\n"
+        + "Ready       : " + ready + "\n"
+        + "Occupied    : " + occupied + "\n\n"
+        + "Select a room to view its task log. Double-click a row to update status.";
+  }
+
+  private String selectedRoomId() {
+    int row = roomTable.getSelectedRow();
+    if (row < 0 || row >= roomTableModel.getRowCount()) {
+      return null;
+    }
+    return String.valueOf(roomTableModel.getValueAt(row, 0));
+  }
+
+  private void selectRoom(String roomId) {
+    for (int i = 0; i < roomTableModel.getRowCount(); i++) {
+      if (roomId.equals(String.valueOf(roomTableModel.getValueAt(i, 0)))) {
+        roomTable.setRowSelectionInterval(i, i);
+        roomTable.scrollRectToVisible(roomTable.getCellRect(i, 0, true));
+        return;
+      }
+    }
+  }
+
+  private void styleStatusColumn(JTable table) {
+    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+        if (isSelected) {
+          c.setBackground(UiTheme.SELECTION);
+          c.setForeground(UiTheme.TEXT);
+          return c;
+        }
+        String status = row < tbl.getRowCount() ? String.valueOf(tbl.getValueAt(row, 2)) : "";
+        if ("Ready For Check-In".equals(status)) {
+          c.setBackground(new Color(0xEC, 0xF8, 0xF3));
+          c.setForeground(column == 2 ? UiTheme.SUCCESS : UiTheme.TEXT);
+        } else if ("Dirty".equals(status)) {
+          c.setBackground(new Color(0xFE, 0xF3, 0xC7));
+          c.setForeground(column == 2 ? UiTheme.WARN : UiTheme.TEXT);
+        } else {
+          c.setBackground(row % 2 == 0 ? UiTheme.PANEL : UiTheme.TABLE_ALT);
+          c.setForeground(UiTheme.TEXT);
+        }
+        return c;
+      }
+    });
   }
 }

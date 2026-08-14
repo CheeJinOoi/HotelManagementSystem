@@ -3,8 +3,17 @@ package boundary;
 import control.VIPRoomAllocationControl;
 import entity.Room;
 import entity.VIPGuest;
-import java.awt.*;
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
 public class VIPRoomAllocationGUI extends JPanel {
@@ -19,7 +28,8 @@ public class VIPRoomAllocationGUI extends JPanel {
 
     public VIPRoomAllocationGUI(VIPRoomAllocationControl control) {
         this.control = control;
-        setLayout(new BorderLayout(8, 8));
+        UiTheme.styleRoot(this);
+        setLayout(new BorderLayout(12, 12));
 
         queueTableModel = new DefaultTableModel(
             new String[]{"#", "Name", "Membership ID", "Tier", "Points"}, 0
@@ -41,9 +51,11 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         queueTable = new JTable(queueTableModel);
         roomTable = new JTable(roomTableModel);
+        UiTheme.styleTable(queueTable);
+        UiTheme.styleTable(roomTable);
+
         infoArea = new JTextArea();
-        infoArea.setEditable(false);
-        infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        UiTheme.styleInfoArea(infoArea);
 
         initComponents();
         refresh();
@@ -65,48 +77,35 @@ public class VIPRoomAllocationGUI extends JPanel {
     }
 
     private void initComponents() {
-        JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setBorder(BorderFactory.createTitledBorder("👑 VIP Waiting Queue"));
+        JButton btnAddVIP = UiTheme.primaryButton("Add VIP Guest");
+        JButton btnAllocate = UiTheme.accentButton("Allocate Room");
+        JButton btnRelease = UiTheme.secondaryButton("Release Room");
+        JButton btnSearch = UiTheme.secondaryButton("Search VIP");
+        JButton btnQueueReport = UiTheme.secondaryButton("Queue Report");
+        JButton btnAllocReport = UiTheme.secondaryButton("Allocation Report");
+        JButton btnRefresh = UiTheme.secondaryButton("Refresh");
+        add(UiTheme.buttonRow(
+            btnAddVIP, btnAllocate, btnRelease, btnSearch, btnQueueReport, btnAllocReport, btnRefresh),
+            BorderLayout.NORTH);
+
+        JPanel tablesPanel = new JPanel(new BorderLayout(12, 12));
+        tablesPanel.setOpaque(false);
+        add(tablesPanel, BorderLayout.CENTER);
+
         JScrollPane queueScroll = new JScrollPane(queueTable);
-        queueScroll.setPreferredSize(new Dimension(380, 350));
-        leftPanel.add(queueScroll, BorderLayout.CENTER);
-        add(leftPanel, BorderLayout.WEST);
+        queueScroll.setPreferredSize(new Dimension(400, 420));
+        UiTheme.styleListScroll(queueScroll);
+        tablesPanel.add(UiTheme.titledPanel("VIP Waiting Queue", queueScroll), BorderLayout.WEST);
 
-        JPanel rightPanel = new JPanel(new BorderLayout(6, 6));
-        add(rightPanel, BorderLayout.CENTER);
-
-        JPanel roomPanel = new JPanel(new BorderLayout());
-        roomPanel.setBorder(BorderFactory.createTitledBorder("🏨 Room Status"));
         JScrollPane roomScroll = new JScrollPane(roomTable);
-        roomScroll.setPreferredSize(new Dimension(320, 180));
-        roomPanel.add(roomScroll, BorderLayout.CENTER);
-        rightPanel.add(roomPanel, BorderLayout.NORTH);
-
-        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 6, 6));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-
-        JButton btnAddVIP = createButton("➕ Add VIP Guest", new Color(46, 204, 113));
-        JButton btnAllocate = createButton("🏠 Allocate Room", new Color(52, 152, 219));
-        JButton btnRelease = createButton("🔓 Release Room", new Color(241, 196, 15));
-        JButton btnSearch = createButton("🔍 Search VIP", new Color(155, 89, 182));
-        JButton btnQueueReport = createButton("📋 Queue Report", new Color(230, 126, 34));
-        JButton btnAllocReport = createButton("📊 Allocation Report", new Color(142, 68, 173));
-        JButton btnRefresh = createButton("🔄 Refresh", new Color(149, 165, 166));
-
-        buttonPanel.add(btnAddVIP);
-        buttonPanel.add(btnAllocate);
-        buttonPanel.add(btnRelease);
-        buttonPanel.add(btnSearch);
-        buttonPanel.add(btnQueueReport);
-        buttonPanel.add(btnAllocReport);
-        buttonPanel.add(btnRefresh);
-
-        rightPanel.add(buttonPanel, BorderLayout.CENTER);
+        roomScroll.setPreferredSize(new Dimension(520, 420));
+        UiTheme.styleListScroll(roomScroll);
+        tablesPanel.add(UiTheme.titledPanel("Room Status", roomScroll), BorderLayout.CENTER);
 
         JScrollPane infoScroll = new JScrollPane(infoArea);
-        infoScroll.setBorder(BorderFactory.createTitledBorder("📝 Information"));
-        infoScroll.setPreferredSize(new Dimension(320, 120));
-        rightPanel.add(infoScroll, BorderLayout.SOUTH);
+        infoScroll.setPreferredSize(new Dimension(320, 110));
+        UiTheme.styleListScroll(infoScroll);
+        add(UiTheme.titledPanel("Information", infoScroll), BorderLayout.SOUTH);
 
         btnAddVIP.addActionListener(e -> showAddVIPDialog());
         btnAllocate.addActionListener(e -> allocateRoom());
@@ -115,16 +114,6 @@ public class VIPRoomAllocationGUI extends JPanel {
         btnQueueReport.addActionListener(e -> showQueueReport());
         btnAllocReport.addActionListener(e -> showAllocationReport());
         btnRefresh.addActionListener(e -> refresh());
-    }
-
-    private JButton createButton(String text, Color color) {
-        JButton button = new JButton(text);
-        button.setBackground(color);
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-        return button;
     }
 
     private void refreshQueueTable() {
@@ -165,7 +154,7 @@ public class VIPRoomAllocationGUI extends JPanel {
             String status;
             String assigned = "-";
             if (room.isOccupied()) {
-                status = "❌ Occupied";
+                status = "Occupied";
                 String confNumber = room.getAssignedConfirmationNumber();
                 boolean found = false;
                 for (VIPGuest guest : vipGuests) {
@@ -180,9 +169,9 @@ public class VIPRoomAllocationGUI extends JPanel {
                     assigned = confNumber + " (Walk-In)";
                 }
             } else if (room.isReadyForAssignment()) {
-                status = "✅ Available";
+                status = "Available";
             } else {
-                status = "🔧 " + room.getCurrentStatus();
+                status = String.valueOf(room.getCurrentStatus());
             }
             roomTableModel.addRow(new Object[]{
                 room.getRoomId(),
@@ -202,25 +191,32 @@ public class VIPRoomAllocationGUI extends JPanel {
             new JComboBox<>(VIPGuest.MembershipTier.values());
         JTextField pointsField = new JTextField("0");
         JTextField emailField = new JTextField();
+        UiTheme.styleTextField(nameField);
+        UiTheme.styleTextField(icField);
+        UiTheme.styleTextField(phoneField);
+        UiTheme.styleTextField(membershipField);
+        UiTheme.styleTextField(pointsField);
+        UiTheme.styleTextField(emailField);
 
         JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-        panel.add(new JLabel("Name:"));
+        panel.setBackground(UiTheme.SURFACE);
+        panel.add(UiTheme.bodyLabel("Name:"));
         panel.add(nameField);
-        panel.add(new JLabel("IC/Passport:"));
+        panel.add(UiTheme.bodyLabel("IC/Passport:"));
         panel.add(icField);
-        panel.add(new JLabel("Phone:"));
+        panel.add(UiTheme.bodyLabel("Phone:"));
         panel.add(phoneField);
-        panel.add(new JLabel("Membership ID (e.g., VIP001):"));
+        panel.add(UiTheme.bodyLabel("Membership ID (e.g., VIP001):"));
         panel.add(membershipField);
-        panel.add(new JLabel("Tier:"));
+        panel.add(UiTheme.bodyLabel("Tier:"));
         panel.add(tierCombo);
-        panel.add(new JLabel("Loyalty Points:"));
+        panel.add(UiTheme.bodyLabel("Loyalty Points:"));
         panel.add(pointsField);
-        panel.add(new JLabel("Email:"));
+        panel.add(UiTheme.bodyLabel("Email:"));
         panel.add(emailField);
 
         int result = JOptionPane.showConfirmDialog(
-            this, panel, "➕ Add VIP Guest",
+            this, panel, "Add VIP Guest",
             JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
         );
 
@@ -245,7 +241,7 @@ public class VIPRoomAllocationGUI extends JPanel {
 
             VIPGuest guest = new VIPGuest(name, ic, phone, membershipId, tier, points, email);
             control.addVIPGuest(guest);
-            infoArea.setText("✅ VIP Added: " + guest);
+            infoArea.setText("VIP added: " + guest);
             refresh();
             notifyDataChanged();
         }
@@ -253,7 +249,7 @@ public class VIPRoomAllocationGUI extends JPanel {
 
     private void allocateRoom() {
         if (control.getQueueSize() == 0) {
-            JOptionPane.showMessageDialog(this, "⚠️ No VIP guests waiting.");
+            JOptionPane.showMessageDialog(this, "No VIP guests waiting.");
             return;
         }
 
@@ -266,7 +262,7 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         if (confirm == JOptionPane.OK_OPTION) {
             control.allocateRoom();
-            infoArea.setText("🏠 Room allocated successfully!");
+            infoArea.setText("Room allocated successfully.");
             refresh();
             notifyDataChanged();
         }
@@ -287,7 +283,7 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         if (confirm == JOptionPane.OK_OPTION) {
             control.releaseRoom(roomId.trim());
-            infoArea.setText("🔓 Room " + roomId + " released.");
+            infoArea.setText("Room " + roomId + " released.");
             refresh();
             notifyDataChanged();
         }
@@ -302,7 +298,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         VIPGuest guest = control.searchByMembershipId(id.trim());
         if (guest != null) {
             infoArea.setText(
-                "✅ VIP Found:\n" +
+                "VIP Found:\n" +
                 "   Name        : " + guest.getName() + "\n" +
                 "   IC/Passport : " + guest.getIdentityNumber() + "\n" +
                 "   Phone       : " + guest.getPhone() + "\n" +
@@ -312,14 +308,14 @@ public class VIPRoomAllocationGUI extends JPanel {
                 "   Email       : " + guest.getEmail()
             );
         } else {
-            infoArea.setText("❌ VIP not found with ID: " + id);
+            infoArea.setText("VIP not found with ID: " + id);
         }
     }
 
     private void showQueueReport() {
-        infoArea.setText("📋 Generating Queue Report...\n");
+        infoArea.setText("Generating Queue Report...\n");
         control.generateQueueReport();
-        infoArea.append("✅ Queue Report generated (check console output).");
+        infoArea.append("Queue Report generated (check console output).");
 
         JOptionPane.showMessageDialog(this,
             "Queue Report generated!\nCheck the console for detailed output.",
@@ -328,9 +324,9 @@ public class VIPRoomAllocationGUI extends JPanel {
     }
 
     private void showAllocationReport() {
-        infoArea.setText("📊 Generating Allocation Report...\n");
+        infoArea.setText("Generating Allocation Report...\n");
         control.generateAllocationReport();
-        infoArea.append("✅ Allocation Report generated (check console output).");
+        infoArea.append("Allocation Report generated (check console output).");
 
         JOptionPane.showMessageDialog(this,
             "Allocation Report generated!\nCheck the console for detailed output.",

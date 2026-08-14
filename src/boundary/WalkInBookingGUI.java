@@ -1,37 +1,33 @@
 package boundary;
 
 import control.WalkInBookingControl;
-import entity.BookingType;
 import entity.Guest;
 import entity.Reservation;
+import entity.Room;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Window;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 /**
  * WalkInBookingGUI.java
  * BOUNDARY (GUI panel): Walk-In & Standard Booking tab inside HotelGUI.
- *
- * Left side  = pending FIFO queue
- * Right side = action buttons + details / reports area
- *
- * Important actions (assign / cancel / check-out) ask OK/Cancel first.
- * X or Cancel on that dialog aborts the action.
  *
  * @author vinsx
  */
@@ -49,16 +45,43 @@ public class WalkInBookingGUI extends JPanel {
   };
 
   private final WalkInBookingControl controller;
-  private final DefaultListModel<String> queueModel = new DefaultListModel<>();
-  private final JList<String> queueList = new JList<>(queueModel);
-  private final JTextArea infoArea = new JTextArea();
+  private final DefaultTableModel queueTableModel;
+  private final DefaultTableModel roomTableModel;
+  private final JTable queueTable;
+  private final JTable roomTable;
+  private final JTextArea infoArea;
   private Runnable onDataChanged;
 
   public WalkInBookingGUI(WalkInBookingControl controller) {
     this.controller = controller;
-    setLayout(new BorderLayout(8, 8));
+    UiTheme.styleRoot(this);
+    setLayout(new BorderLayout(12, 12));
+
+    queueTableModel = new DefaultTableModel(
+        new String[] { "#", "Confirm", "Type", "Guest", "Room Type", "Check-In", "Status" }, 0) {
+      @Override
+      public boolean isCellEditable(int row, int column) {
+        return false;
+      }
+    };
+    roomTableModel = new DefaultTableModel(
+        new String[] { "Room ID", "Type", "Housekeeping", "Occupancy", "Can Assign", "Assigned To" }, 0) {
+      @Override
+      public boolean isCellEditable(int row, int column) {
+        return false;
+      }
+    };
+    queueTable = new JTable(queueTableModel);
+    roomTable = new JTable(roomTableModel);
+    UiTheme.styleTable(queueTable);
+    UiTheme.styleTable(roomTable);
+    styleAssignableColumn(roomTable);
+
+    infoArea = new JTextArea();
+    UiTheme.styleInfoArea(infoArea);
+
     initComponents();
-    refreshQueue();
+    refresh();
   }
 
   public void setOnDataChanged(Runnable onDataChanged) {
@@ -66,7 +89,23 @@ public class WalkInBookingGUI extends JPanel {
   }
 
   public void refresh() {
-    refreshQueue();
+    String selectedConfirm = selectedConfirmation();
+    String selectedRoom = selectedRoomId();
+    refreshQueueTable();
+    refreshRoomTable();
+    if (selectedConfirm != null) {
+      selectConfirmation(selectedConfirm);
+    } else if (queueTableModel.getRowCount() > 0) {
+      queueTable.setRowSelectionInterval(0, 0);
+    }
+    if (selectedRoom != null) {
+      selectRoom(selectedRoom);
+    }
+    if (queueTable.getSelectedRow() >= 0) {
+      showSelectedDetails();
+    } else if (queueTableModel.getRowCount() == 0) {
+      infoArea.setText("Pending queue is empty.\nUse the room status table to see which rooms are ready to assign.");
+    }
   }
 
   private void notifyDataChanged() {
@@ -76,48 +115,47 @@ public class WalkInBookingGUI extends JPanel {
   }
 
   private void initComponents() {
-    queueList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-    queueList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-    JScrollPane listScroll = new JScrollPane(queueList);
-    listScroll.setPreferredSize(new Dimension(430, 300));
-    listScroll.setBorder(javax.swing.BorderFactory.createTitledBorder("Pending queue (front = next to assign)"));
-    add(listScroll, BorderLayout.WEST);
+    JButton btnWalkIn = UiTheme.primaryButton("Register Walk-In");
+    JButton btnStandard = UiTheme.primaryButton("Standard Booking");
+    JButton btnAssign = UiTheme.accentButton("Assign Next Guest");
+    JButton btnCancel = UiTheme.dangerButton("Cancel Waiting");
+    JButton btnCheckout = UiTheme.secondaryButton("Check-Out Guest");
+    JButton btnRooms = UiTheme.secondaryButton("Room Status");
+    JButton btnReports = UiTheme.secondaryButton("Reports");
+    JButton btnRefresh = UiTheme.secondaryButton("Refresh");
+    add(UiTheme.buttonRow(
+        btnWalkIn, btnStandard, btnAssign, btnCancel, btnCheckout, btnRooms, btnReports, btnRefresh),
+        BorderLayout.NORTH);
 
-    JPanel right = new JPanel(new BorderLayout(6, 6));
-    add(right, BorderLayout.CENTER);
+    JPanel tablesPanel = new JPanel(new BorderLayout(12, 12));
+    tablesPanel.setOpaque(false);
+    add(tablesPanel, BorderLayout.CENTER);
 
-    JPanel buttons = new JPanel(new GridLayout(0, 1, 6, 6));
-    JButton btnWalkIn = new JButton("Register Walk-In");
-    JButton btnStandard = new JButton("Create Standard Booking");
-    JButton btnAssign = new JButton("Assign Next Guest");
-    JButton btnCancel = new JButton("Cancel Waiting Reservation");
-    JButton btnCheckout = new JButton("Check-Out Guest");
-    JButton btnReports = new JButton("Generate Reports");
-    JButton btnRefresh = new JButton("Refresh Queue");
-    buttons.add(btnWalkIn);
-    buttons.add(btnStandard);
-    buttons.add(btnAssign);
-    buttons.add(btnCancel);
-    buttons.add(btnCheckout);
-    buttons.add(btnReports);
-    buttons.add(btnRefresh);
-    right.add(buttons, BorderLayout.NORTH);
+    JScrollPane queueScroll = new JScrollPane(queueTable);
+    queueScroll.setPreferredSize(new Dimension(520, 420));
+    UiTheme.styleListScroll(queueScroll);
+    tablesPanel.add(UiTheme.titledPanel("Pending queue (front = next to assign)", queueScroll), BorderLayout.WEST);
 
-    infoArea.setEditable(false);
-    infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+    JScrollPane roomScroll = new JScrollPane(roomTable);
+    roomScroll.setPreferredSize(new Dimension(520, 420));
+    UiTheme.styleListScroll(roomScroll);
+    tablesPanel.add(UiTheme.titledPanel("Room Status", roomScroll), BorderLayout.CENTER);
+
     JScrollPane infoScroll = new JScrollPane(infoArea);
-    infoScroll.setBorder(javax.swing.BorderFactory.createTitledBorder("Details / Reports"));
-    right.add(infoScroll, BorderLayout.CENTER);
+    infoScroll.setPreferredSize(new Dimension(320, 120));
+    UiTheme.styleListScroll(infoScroll);
+    add(UiTheme.titledPanel("Information", infoScroll), BorderLayout.SOUTH);
 
     btnWalkIn.addActionListener(e -> showWalkInDialog());
     btnStandard.addActionListener(e -> showStandardBookingDialog());
     btnAssign.addActionListener(e -> assignNextGuest());
     btnCancel.addActionListener(e -> cancelSelectedOrPrompt());
     btnCheckout.addActionListener(e -> checkOutReservation());
+    btnRooms.addActionListener(e -> showRoomStatusBoard());
     btnReports.addActionListener(e -> chooseAndShowReport());
-    btnRefresh.addActionListener(e -> refreshQueue());
+    btnRefresh.addActionListener(e -> refresh());
 
-    queueList.addListSelectionListener(e -> {
+    queueTable.getSelectionModel().addListSelectionListener(e -> {
       if (!e.getValueIsAdjusting()) {
         showSelectedDetails();
       }
@@ -130,17 +168,22 @@ public class WalkInBookingGUI extends JPanel {
     JTextField phoneField = new JTextField();
     JComboBox<String> roomTypeBox = new JComboBox<>(ROOM_TYPES);
     JTextField nightsField = new JTextField("1");
+    UiTheme.styleTextField(nameField);
+    UiTheme.styleTextField(icField);
+    UiTheme.styleTextField(phoneField);
+    UiTheme.styleTextField(nightsField);
 
     JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-    panel.add(new JLabel("Guest name:"));
+    panel.setBackground(UiTheme.SURFACE);
+    panel.add(UiTheme.bodyLabel("Guest name:"));
     panel.add(nameField);
-    panel.add(new JLabel("IC / passport:"));
+    panel.add(UiTheme.bodyLabel("IC / passport:"));
     panel.add(icField);
-    panel.add(new JLabel("Phone:"));
+    panel.add(UiTheme.bodyLabel("Phone:"));
     panel.add(phoneField);
-    panel.add(new JLabel("Room type:"));
+    panel.add(UiTheme.bodyLabel("Room type:"));
     panel.add(roomTypeBox);
-    panel.add(new JLabel("Number of nights:"));
+    panel.add(UiTheme.bodyLabel("Number of nights:"));
     panel.add(nightsField);
 
     int result = JOptionPane.showConfirmDialog(this, panel, "Register Walk-In",
@@ -160,7 +203,7 @@ public class WalkInBookingGUI extends JPanel {
     Guest guest = new Guest(nameField.getText().trim(), icField.getText().trim(), phoneField.getText().trim());
     String message = controller.registerWalkIn(guest, (String) roomTypeBox.getSelectedItem(), nights);
     showResult(message);
-    refreshQueue();
+    refresh();
     notifyDataChanged();
   }
 
@@ -171,20 +214,26 @@ public class WalkInBookingGUI extends JPanel {
     JComboBox<String> roomTypeBox = new JComboBox<>(ROOM_TYPES);
     JTextField checkInField = new JTextField();
     JTextField checkOutField = new JTextField();
+    UiTheme.styleTextField(nameField);
+    UiTheme.styleTextField(icField);
+    UiTheme.styleTextField(phoneField);
+    UiTheme.styleTextField(checkInField);
+    UiTheme.styleTextField(checkOutField);
     String todayExample = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
     JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-    panel.add(new JLabel("Guest name:"));
+    panel.setBackground(UiTheme.SURFACE);
+    panel.add(UiTheme.bodyLabel("Guest name:"));
     panel.add(nameField);
-    panel.add(new JLabel("IC / passport:"));
+    panel.add(UiTheme.bodyLabel("IC / passport:"));
     panel.add(icField);
-    panel.add(new JLabel("Phone:"));
+    panel.add(UiTheme.bodyLabel("Phone:"));
     panel.add(phoneField);
-    panel.add(new JLabel("Room type:"));
+    panel.add(UiTheme.bodyLabel("Room type:"));
     panel.add(roomTypeBox);
-    panel.add(new JLabel("Check-in date (e.g. " + todayExample + ", blank = today):"));
+    panel.add(UiTheme.bodyLabel("Check-in date (e.g. " + todayExample + ", blank = today):"));
     panel.add(checkInField);
-    panel.add(new JLabel("Check-out date (e.g. " + todayExample + "):"));
+    panel.add(UiTheme.bodyLabel("Check-out date (e.g. " + todayExample + "):"));
     panel.add(checkOutField);
 
     int result = JOptionPane.showConfirmDialog(this, panel, "Create Standard Booking",
@@ -203,7 +252,7 @@ public class WalkInBookingGUI extends JPanel {
     Guest guest = new Guest(nameField.getText().trim(), icField.getText().trim(), phoneField.getText().trim());
     String message = controller.createStandardBooking(guest, (String) roomTypeBox.getSelectedItem(), checkIn, checkOut);
     showResult(message);
-    refreshQueue();
+    refresh();
     notifyDataChanged();
   }
 
@@ -217,13 +266,14 @@ public class WalkInBookingGUI extends JPanel {
       String guestName = front.getGuest() == null ? "-" : front.getGuest().getName();
       message = "Assign a room to the next guest?\n"
           + guestName + " (" + front.getConfirmationNumber() + ")\n"
-          + "Room type: " + front.getRoomType();
+          + "Room type: " + front.getRoomType() + "\n\n"
+          + readyRoomsSummary(front.getRoomType());
     }
     if (!confirmAction(message, "Confirm Assign")) {
       return;
     }
     showResult(controller.assignNextGuestToRoom());
-    refreshQueue();
+    refresh();
     notifyDataChanged();
   }
 
@@ -241,7 +291,7 @@ public class WalkInBookingGUI extends JPanel {
     }
 
     showResult(controller.cancelWaitingReservation(confirmation));
-    refreshQueue();
+    refresh();
     notifyDataChanged();
   }
 
@@ -256,107 +306,73 @@ public class WalkInBookingGUI extends JPanel {
     }
 
     showResult(controller.checkOutGuest(confirmation));
-    refreshQueue();
+    refresh();
     notifyDataChanged();
   }
 
+  private void showRoomStatusBoard() {
+    refreshRoomTable();
+    if (roomTableModel.getRowCount() > 0) {
+      roomTable.setRowSelectionInterval(0, 0);
+      roomTable.scrollRectToVisible(roomTable.getCellRect(0, 0, true));
+    }
+    infoArea.setText(controller.formatRoomStatusBoard());
+  }
+
   private void chooseAndShowReport() {
-    String[] options = {
-        "1. Walk-in vs standard arrivals by date",
-        "2. Unassigned demand vs available rooms"
-    };
-    String choice = (String) JOptionPane.showInputDialog(
-        this,
-        "Choose a report type:",
-        "Generate Reports",
-        JOptionPane.QUESTION_MESSAGE,
-        null,
-        options,
-        options[0]);
-    if (choice == null) {
-      return;
-    }
-    if (choice.startsWith("1.")) {
-      showArrivalsReport();
-    } else {
-      showDemandReport();
-    }
+    Window owner = SwingUtilities.getWindowAncestor(this);
+    WalkInReportGUI.open(owner, controller);
+    infoArea.setText("Opened Walk-In & Standard Booking reports.\n"
+        + "Use the Arrivals and Demand tabs to filter and generate tables.");
   }
 
-  private void showArrivalsReport() {
-    String todayExample = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-    JTextField startField = new JTextField();
-    JTextField endField = new JTextField();
-    JComboBox<String> typeBox = new JComboBox<>(new String[] { "All", "Walk-In", "Standard" });
-
-    JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-    panel.add(new JLabel("Start date (e.g. " + todayExample + ", blank = today):"));
-    panel.add(startField);
-    panel.add(new JLabel("End date (blank = today):"));
-    panel.add(endField);
-    panel.add(new JLabel("Booking type:"));
-    panel.add(typeBox);
-
-    int result = JOptionPane.showConfirmDialog(this, panel, "Arrivals Report",
-        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-    if (result != JOptionPane.OK_OPTION) {
-      return;
-    }
-
-    LocalDate startDate = parseDateOrToday(startField.getText());
-    LocalDate endDate = parseDateOrToday(endField.getText());
-    if (startDate == null || endDate == null) {
-      JOptionPane.showMessageDialog(this, "Invalid date. Try " + todayExample + ".");
-      return;
-    }
-
-    BookingType typeFilter = null;
-    if ("Walk-In".equals(typeBox.getSelectedItem())) {
-      typeFilter = BookingType.WALK_IN;
-    } else if ("Standard".equals(typeBox.getSelectedItem())) {
-      typeFilter = BookingType.STANDARD;
-    }
-    infoArea.setText(controller.generateArrivalsReport(startDate, endDate, typeFilter));
-  }
-
-  private void showDemandReport() {
-    JComboBox<String> typeBox = new JComboBox<>(new String[] { "All types", "Standard", "Deluxe", "Suite" });
-    JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-    panel.add(new JLabel("Filter by room type:"));
-    panel.add(typeBox);
-
-    int result = JOptionPane.showConfirmDialog(this, panel, "Demand vs Rooms Report",
-        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-    if (result != JOptionPane.OK_OPTION) {
-      return;
-    }
-
-    String selected = (String) typeBox.getSelectedItem();
-    String filter = "All types".equals(selected) ? null : selected;
-    infoArea.setText(controller.generateDemandReport(filter));
-  }
-
-  private void refreshQueue() {
-    queueModel.clear();
+  private void refreshQueueTable() {
+    queueTableModel.setRowCount(0);
     Reservation[] pending = controller.getPendingReservations();
-    if (pending.length == 0) {
-      queueModel.addElement("(queue is empty)");
-      infoArea.setText("Pending queue is empty.");
-      return;
-    }
     for (int i = 0; i < pending.length; i++) {
       Reservation reservation = pending[i];
       String guestName = reservation.getGuest() == null ? "-" : reservation.getGuest().getName();
-      queueModel.addElement(String.format("%d. %s | %s | %s | %s | %s",
+      queueTableModel.addRow(new Object[] {
           i + 1,
           reservation.getConfirmationNumber(),
           reservation.getBookingType(),
           guestName,
           reservation.getRoomType(),
-          reservation.getStatus()));
+          reservation.getCheckInDate(),
+          reservation.getStatus()
+      });
     }
-    queueList.setSelectedIndex(0);
-    showSelectedDetails();
+  }
+
+  private void refreshRoomTable() {
+    roomTableModel.setRowCount(0);
+    Room[] rooms = controller.getAllRooms();
+    if (rooms == null) {
+      return;
+    }
+    for (int i = 0; i < rooms.length; i++) {
+      Room room = rooms[i];
+      if (room == null) {
+        continue;
+      }
+      String assigned = "-";
+      if (room.getAssignedConfirmationNumber() != null) {
+        Reservation reservation = controller.findReservation(room.getAssignedConfirmationNumber());
+        if (reservation != null && reservation.getGuest() != null) {
+          assigned = reservation.getGuest().getName();
+        } else {
+          assigned = room.getAssignedConfirmationNumber();
+        }
+      }
+      roomTableModel.addRow(new Object[] {
+          room.getRoomId(),
+          room.getRoomType(),
+          room.getCurrentStatus(),
+          room.isOccupied() ? "Occupied" : "Free",
+          room.isReadyForAssignment() ? "Yes" : "No",
+          assigned
+      });
+    }
   }
 
   private void showSelectedDetails() {
@@ -365,22 +381,106 @@ public class WalkInBookingGUI extends JPanel {
       return;
     }
     Reservation found = controller.findReservation(confirmation);
-    if (found != null) {
-      infoArea.setText(controller.formatReservationDetails(found));
+    if (found == null) {
+      return;
+    }
+    StringBuilder details = new StringBuilder(controller.formatReservationDetails(found));
+    details.append('\n').append(readyRoomsSummary(found.getRoomType()));
+    infoArea.setText(details.toString());
+    selectFirstAssignableRoom(found.getRoomType());
+  }
+
+  private String readyRoomsSummary(String roomType) {
+    Room[] rooms = controller.getAllRooms();
+    StringBuilder readyIds = new StringBuilder();
+    int ready = 0;
+    if (rooms != null) {
+      for (int i = 0; i < rooms.length; i++) {
+        Room room = rooms[i];
+        if (room != null && roomType.equals(room.getRoomType()) && room.isReadyForAssignment()) {
+          if (ready > 0) {
+            readyIds.append(", ");
+          }
+          readyIds.append(room.getRoomId());
+          ready++;
+        }
+      }
+    }
+    if (ready == 0) {
+      return "Ready " + roomType + " rooms: none. Check Housekeeping or check out a guest first.";
+    }
+    return "Ready " + roomType + " rooms (" + ready + "): " + readyIds;
+  }
+
+  private void selectFirstAssignableRoom(String roomType) {
+    for (int i = 0; i < roomTableModel.getRowCount(); i++) {
+      String type = String.valueOf(roomTableModel.getValueAt(i, 1));
+      String canAssign = String.valueOf(roomTableModel.getValueAt(i, 4));
+      if (roomType.equals(type) && "Yes".equals(canAssign)) {
+        roomTable.setRowSelectionInterval(i, i);
+        roomTable.scrollRectToVisible(roomTable.getCellRect(i, 0, true));
+        return;
+      }
     }
   }
 
   private String selectedConfirmation() {
-    String selected = queueList.getSelectedValue();
-    if (selected == null || selected.startsWith("(queue")) {
+    int row = queueTable.getSelectedRow();
+    if (row < 0 || row >= queueTableModel.getRowCount()) {
       return null;
     }
-    int dot = selected.indexOf('.');
-    int bar = selected.indexOf('|');
-    if (dot < 0 || bar < 0) {
+    return String.valueOf(queueTableModel.getValueAt(row, 1));
+  }
+
+  private String selectedRoomId() {
+    int row = roomTable.getSelectedRow();
+    if (row < 0 || row >= roomTableModel.getRowCount()) {
       return null;
     }
-    return selected.substring(dot + 1, bar).trim();
+    return String.valueOf(roomTableModel.getValueAt(row, 0));
+  }
+
+  private void selectConfirmation(String confirmation) {
+    for (int i = 0; i < queueTableModel.getRowCount(); i++) {
+      if (confirmation.equals(String.valueOf(queueTableModel.getValueAt(i, 1)))) {
+        queueTable.setRowSelectionInterval(i, i);
+        queueTable.scrollRectToVisible(queueTable.getCellRect(i, 0, true));
+        return;
+      }
+    }
+  }
+
+  private void selectRoom(String roomId) {
+    for (int i = 0; i < roomTableModel.getRowCount(); i++) {
+      if (roomId.equals(String.valueOf(roomTableModel.getValueAt(i, 0)))) {
+        roomTable.setRowSelectionInterval(i, i);
+        return;
+      }
+    }
+  }
+
+  private void styleAssignableColumn(JTable table) {
+    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+      @Override
+      public Component getTableCellRendererComponent(
+          JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+        if (isSelected) {
+          c.setBackground(UiTheme.SELECTION);
+          c.setForeground(UiTheme.TEXT);
+        } else {
+          boolean assignable = row < tbl.getRowCount()
+              && "Yes".equals(String.valueOf(tbl.getValueAt(row, 4)));
+          c.setBackground(assignable ? new Color(0xEC, 0xF8, 0xF3) : (row % 2 == 0 ? UiTheme.PANEL : UiTheme.TABLE_ALT));
+          if (column == 4 && assignable) {
+            c.setForeground(UiTheme.SUCCESS);
+          } else {
+            c.setForeground(UiTheme.TEXT);
+          }
+        }
+        return c;
+      }
+    });
   }
 
   private boolean confirmAction(String message, String title) {
