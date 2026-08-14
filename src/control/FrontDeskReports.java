@@ -1,17 +1,17 @@
 package control;
 
-import entity.BookingType;
 import entity.Reservation;
 import entity.ReservationStatus;
 
 /**
- * Front Desk Reports.
+ * FrontDeskReports
  *
- * Uses:
- * - Hashing search through FrontDeskController
- * - Arrays
- * - Insertion Sort
- * - Multiple filtering criteria
+ * Generates analytical reports for Front Desk.
+ *
+ * Algorithms used:
+ * 1. Searching
+ * 2. Filtering
+ * 3. Insertion Sort
  *
  * No Java Collection Framework is used.
  */
@@ -19,24 +19,23 @@ public class FrontDeskReports {
 
     private FrontDeskController controller;
 
+
+    // =====================================================
+    // CONSTRUCTOR
+    // =====================================================
+
     public FrontDeskReports(
             FrontDeskController controller) {
 
         this.controller = controller;
     }
 
-    /**
-     * Report 1:
-     *
-     * Reservation Status Report
-     *
-     * Filters:
-     * - Booking Type
-     * - Reservation Status
-     *
-     * Sort:
-     * - Confirmation number
-     */
+
+    // =====================================================
+    // REPORT 1
+    // RESERVATION REPORT
+    // =====================================================
+
     public String generateReservationReport() {
 
         Reservation[] all =
@@ -48,20 +47,19 @@ public class FrontDeskReports {
                     "\nNo reservation data available.\n";
         }
 
-        // ==========================================
-        // FILTER
-        // ==========================================
-
+        /*
+         * Filter:
+         *
+         * Only active reservations
+         */
         int count = 0;
 
         for (int i = 0;
                 i < all.length;
                 i++) {
 
-            if (matchesFilter(
-                    all[i],
-                    null,
-                    null)) {
+            if (all[i] != null
+                    && isActive(all[i])) {
 
                 count++;
             }
@@ -76,10 +74,8 @@ public class FrontDeskReports {
                 i < all.length;
                 i++) {
 
-            if (matchesFilter(
-                    all[i],
-                    null,
-                    null)) {
+            if (all[i] != null
+                    && isActive(all[i])) {
 
                 filtered[index] =
                         all[i];
@@ -88,16 +84,13 @@ public class FrontDeskReports {
             }
         }
 
-        // ==========================================
-        // SORT
-        // ==========================================
-
-        insertionSortByConfirmation(
+        /*
+         * Sorting:
+         *
+         * Sort by check-in date.
+         */
+        insertionSortByCheckInDate(
                 filtered);
-
-        // ==========================================
-        // REPORT
-        // ==========================================
 
         StringBuilder report =
                 new StringBuilder();
@@ -112,32 +105,25 @@ public class FrontDeskReports {
                 "==============================================================\n");
 
         report.append(
-                "Filter: All Booking Types | All Status\n");
+                "Filter: Active reservations only\n");
 
         report.append(
-                "Sorting: Confirmation Number (Ascending)\n");
+                "Sort : Check-in date (earliest first)\n");
 
         report.append(
-                "==============================================================\n");
+                "--------------------------------------------------------------\n");
 
         report.append(
                 String.format(
-                        "%-10s %-12s %-20s %-10s %-12s %-12s%n",
+                        "%-10s %-20s %-12s %-12s %-12s%n",
                         "Confirm",
-                        "Type",
                         "Guest",
-                        "Room",
+                        "Room Type",
                         "Check-In",
                         "Status"));
 
         report.append(
                 "--------------------------------------------------------------\n");
-
-        int waiting = 0;
-        int assigned = 0;
-        int checkedIn = 0;
-        int checkedOut = 0;
-        int cancelled = 0;
 
         for (int i = 0;
                 i < filtered.length;
@@ -146,99 +132,46 @@ public class FrontDeskReports {
             Reservation r =
                     filtered[i];
 
-            String guestName =
-                    r.getGuest() == null
-                            ? "-"
-                            : r.getGuest().getName();
+            String guestName = "-";
+
+            if (r.getGuest() != null) {
+
+                guestName =
+                        r.getGuest().getName();
+            }
 
             report.append(
                     String.format(
-                            "%-10s %-12s %-20s %-10s %-12s %-12s%n",
+                            "%-10s %-20s %-12s %-12s %-12s%n",
+
                             r.getConfirmationNumber(),
-                            r.getBookingType(),
+
                             guestName,
+
                             r.getRoomType(),
+
                             r.getCheckInDate(),
+
                             r.getStatus()));
-
-            if (r.getStatus()
-                    == ReservationStatus.WAITING) {
-
-                waiting++;
-
-            } else if (r.getStatus()
-                    == ReservationStatus.ASSIGNED) {
-
-                assigned++;
-
-            } else if (r.getStatus()
-                    == ReservationStatus.CHECKED_IN) {
-
-                checkedIn++;
-
-            } else if (r.getStatus()
-                    == ReservationStatus.CHECKED_OUT) {
-
-                checkedOut++;
-
-            } else if (r.getStatus()
-                    == ReservationStatus.CANCELLED) {
-
-                cancelled++;
-            }
         }
 
         report.append(
                 "--------------------------------------------------------------\n");
 
         report.append(
-                "Total Reservations : "
-                        + filtered.length
-                        + "\n");
-
-        report.append(
-                "Waiting            : "
-                        + waiting
-                        + "\n");
-
-        report.append(
-                "Assigned           : "
-                        + assigned
-                        + "\n");
-
-        report.append(
-                "Checked-In         : "
-                        + checkedIn
-                        + "\n");
-
-        report.append(
-                "Checked-Out        : "
-                        + checkedOut
-                        + "\n");
-
-        report.append(
-                "Cancelled          : "
-                        + cancelled
-                        + "\n");
-
-        report.append(
-                "==============================================================\n");
+                "Total active reservations: "
+                + filtered.length
+                + "\n");
 
         return report.toString();
     }
 
-    /**
-     * Report 2:
-     *
-     * Guest Information Report.
-     *
-     * Filters:
-     * - Guest exists
-     * - Booking Type
-     *
-     * Sort:
-     * - Guest name
-     */
+
+    // =====================================================
+    // REPORT 2
+    // GUEST REPORT
+    // =====================================================
+
     public String generateGuestReport() {
 
         Reservation[] all =
@@ -250,40 +183,175 @@ public class FrontDeskReports {
                     "\nNo guest data available.\n";
         }
 
+        StringBuilder report =
+                new StringBuilder();
+
+        report.append(
+                "\n==============================================================\n");
+
+        report.append(
+                "                    GUEST REPORT\n");
+
+        report.append(
+                "==============================================================\n");
+
+        report.append(
+                "Guest information retrieved from reservation records\n");
+
+        report.append(
+                "--------------------------------------------------------------\n");
+
+        report.append(
+                String.format(
+                        "%-10s %-20s %-18s %-15s%n",
+                        "Confirm",
+                        "Guest Name",
+                        "IC/Passport",
+                        "Phone"));
+
+        report.append(
+                "--------------------------------------------------------------\n");
+
         int count = 0;
 
         for (int i = 0;
                 i < all.length;
                 i++) {
 
-            if (all[i] != null
-                    && all[i].getGuest() != null) {
+            Reservation r =
+                    all[i];
 
-                count++;
+            if (r == null
+                    || r.getGuest() == null) {
+
+                continue;
             }
+
+            report.append(
+                    String.format(
+                            "%-10s %-20s %-18s %-15s%n",
+
+                            r.getConfirmationNumber(),
+
+                            r.getGuest().getName(),
+
+                            r.getGuest()
+                                    .getIdentityNumber(),
+
+                            r.getGuest()
+                                    .getPhone()));
+
+            count++;
         }
 
-        Reservation[] filtered =
-                new Reservation[count];
+        report.append(
+                "--------------------------------------------------------------\n");
 
-        int index = 0;
+        report.append(
+                "Total guest records: "
+                + count
+                + "\n");
+
+        return report.toString();
+    }
+
+
+    // =====================================================
+    // REPORT 3
+    // ROOM AVAILABILITY REPORT
+    // =====================================================
+
+    public String generateRoomAvailabilityReport() {
+
+        Reservation[] all =
+                controller.getAllReservations();
+
+        if (all == null) {
+
+            return
+                    "\nNo reservation data available.\n";
+        }
+
+        int standard = 0;
+        int deluxe = 0;
+        int suite = 0;
+
+        int waiting = 0;
+        int assigned = 0;
+        int checkedIn = 0;
+        int cancelled = 0;
+        int checkedOut = 0;
 
         for (int i = 0;
                 i < all.length;
                 i++) {
 
-            if (all[i] != null
-                    && all[i].getGuest() != null) {
+            Reservation r =
+                    all[i];
 
-                filtered[index] =
-                        all[i];
+            if (r == null) {
+                continue;
+            }
 
-                index++;
+            /*
+             * Multiple criteria:
+             *
+             * Room Type
+             * AND
+             * Reservation Status
+             */
+
+            if ("Standard".equalsIgnoreCase(
+                    r.getRoomType())) {
+
+                standard++;
+            }
+
+            else if ("Deluxe".equalsIgnoreCase(
+                    r.getRoomType())) {
+
+                deluxe++;
+            }
+
+            else if ("Suite".equalsIgnoreCase(
+                    r.getRoomType())) {
+
+                suite++;
+            }
+
+            ReservationStatus status =
+                    r.getStatus();
+
+            if (status ==
+                    ReservationStatus.WAITING) {
+
+                waiting++;
+            }
+
+            else if (status ==
+                    ReservationStatus.ASSIGNED) {
+
+                assigned++;
+            }
+
+            else if (status ==
+                    ReservationStatus.CHECKED_IN) {
+
+                checkedIn++;
+            }
+
+            else if (status ==
+                    ReservationStatus.CANCELLED) {
+
+                cancelled++;
+            }
+
+            else if (status ==
+                    ReservationStatus.CHECKED_OUT) {
+
+                checkedOut++;
             }
         }
-
-        insertionSortByGuestName(
-                filtered);
 
         StringBuilder report =
                 new StringBuilder();
@@ -292,157 +360,176 @@ public class FrontDeskReports {
                 "\n==============================================================\n");
 
         report.append(
-                "                  FRONT DESK GUEST REPORT\n");
+                "              ROOM / RESERVATION ANALYSIS\n");
 
         report.append(
                 "==============================================================\n");
 
         report.append(
-                "Filter: Guests with reservations\n");
+                "\nROOM TYPE SUMMARY\n");
 
         report.append(
-                "Sorting: Guest Name (Ascending)\n");
-
-        report.append(
-                "==============================================================\n");
+                "--------------------------------------------------------------\n");
 
         report.append(
                 String.format(
-                        "%-20s %-18s %-15s %-10s %-12s%n",
-                        "Guest Name",
-                        "IC / Passport",
-                        "Phone",
-                        "Confirm",
-                        "Status"));
-
-        report.append(
-                "--------------------------------------------------------------\n");
-
-        for (int i = 0;
-                i < filtered.length;
-                i++) {
-
-            Reservation r =
-                    filtered[i];
-
-            report.append(
-                    String.format(
-                            "%-20s %-18s %-15s %-10s %-12s%n",
-                            r.getGuest().getName(),
-                            r.getGuest().getIdentityNumber(),
-                            r.getGuest().getPhone(),
-                            r.getConfirmationNumber(),
-                            r.getStatus()));
-        }
+                        "%-20s %-15s%n",
+                        "Room Type",
+                        "Reservations"));
 
         report.append(
                 "--------------------------------------------------------------\n");
 
         report.append(
-                "Total Guests: "
-                        + filtered.length
-                        + "\n");
+                String.format(
+                        "%-20s %-15d%n",
+                        "Standard",
+                        standard));
 
         report.append(
-                "==============================================================\n");
+                String.format(
+                        "%-20s %-15d%n",
+                        "Deluxe",
+                        deluxe));
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Suite",
+                        suite));
+
+        report.append(
+                "\nSTATUS SUMMARY\n");
+
+        report.append(
+                "--------------------------------------------------------------\n");
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Waiting",
+                        waiting));
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Assigned",
+                        assigned));
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Checked-In",
+                        checkedIn));
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Cancelled",
+                        cancelled));
+
+        report.append(
+                String.format(
+                        "%-20s %-15d%n",
+                        "Checked-Out",
+                        checkedOut));
+
+        report.append(
+                "--------------------------------------------------------------\n");
+
+        report.append(
+                "Management Summary\n");
+
+        report.append(
+                "Total reservations : "
+                + all.length
+                + "\n");
+
+        report.append(
+                "Currently waiting  : "
+                + waiting
+                + "\n");
+
+        report.append(
+                "Currently in-house : "
+                + checkedIn
+                + "\n");
 
         return report.toString();
     }
 
-    /**
-     * Multiple filter method.
-     */
-    private boolean matchesFilter(
-            Reservation reservation,
-            BookingType bookingType,
-            ReservationStatus status) {
 
-        if (reservation == null) {
-            return false;
-        }
+    // =====================================================
+    // FILTER
+    // =====================================================
 
-        if (bookingType != null
-                && reservation.getBookingType()
-                != bookingType) {
+    private boolean isActive(
+            Reservation reservation) {
 
-            return false;
-        }
+        ReservationStatus status =
+                reservation.getStatus();
 
-        if (status != null
-                && reservation.getStatus()
-                != status) {
-
-            return false;
-        }
-
-        return true;
+        return status !=
+                ReservationStatus.CANCELLED
+                &&
+                status !=
+                ReservationStatus.CHECKED_OUT;
     }
 
-    /**
-     * Insertion Sort by confirmation number.
-     */
-    private void insertionSortByConfirmation(
-            Reservation[] data) {
+
+    // =====================================================
+    // INSERTION SORT
+    // =====================================================
+
+    private void insertionSortByCheckInDate(
+            Reservation[] reservations) {
 
         for (int i = 1;
-                i < data.length;
+                i < reservations.length;
                 i++) {
 
             Reservation key =
-                    data[i];
+                    reservations[i];
 
             int j = i - 1;
 
             while (j >= 0
-                    && data[j]
-                    .getConfirmationNumber()
-                    .compareTo(
-                            key.getConfirmationNumber())
-                    > 0) {
+                    && isAfter(
+                            reservations[j],
+                            key)) {
 
-                data[j + 1] =
-                        data[j];
+                reservations[j + 1] =
+                        reservations[j];
 
                 j--;
             }
 
-            data[j + 1] =
+            reservations[j + 1] =
                     key;
         }
     }
 
-    /**
-     * Insertion Sort by guest name.
-     */
-    private void insertionSortByGuestName(
-            Reservation[] data) {
 
-        for (int i = 1;
-                i < data.length;
-                i++) {
+    // =====================================================
+    // COMPARE DATES
+    // =====================================================
 
-            Reservation key =
-                    data[i];
+    private boolean isAfter(
+            Reservation first,
+            Reservation second) {
 
-            int j = i - 1;
+        if (first.getCheckInDate() == null) {
 
-            while (j >= 0
-                    && data[j]
-                    .getGuest()
-                    .getName()
-                    .compareToIgnoreCase(
-                            key.getGuest()
-                            .getName())
-                    > 0) {
-
-                data[j + 1] =
-                        data[j];
-
-                j--;
-            }
-
-            data[j + 1] =
-                    key;
+            return false;
         }
+
+        if (second.getCheckInDate() == null) {
+
+            return true;
+        }
+
+        return first.getCheckInDate()
+                .isAfter(
+                        second.getCheckInDate());
     }
 }

@@ -1,7 +1,6 @@
 package hashing;
 
-public class HashedDictionary<K, V>
-        implements DictionaryInterface<K, V> {
+public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
 
     private TableEntry<K, V>[] hashTable;
 

@@ -1,36 +1,51 @@
 package boundary;
 
 import control.FrontDeskController;
+import control.FrontDeskReports;
 import entity.Reservation;
-
 import java.util.Scanner;
 
-/**
- * FrontDeskUI
- *
- * Console interface for Front Desk staff.
- */
+
 public class FrontDeskUI {
 
     private Scanner scanner;
 
     private FrontDeskController controller;
 
-    public FrontDeskUI(
-            FrontDeskController controller) {
+    private FrontDeskReports reports;
 
-        this.controller =
-                controller;
 
-        scanner =
-                new Scanner(System.in);
+    // =====================================================
+    // CONSTRUCTOR
+    // =====================================================
+
+    public FrontDeskUI(FrontDeskController controller) {
+
+        scanner = new Scanner(System.in);
+
+        this.controller = controller;
+
+        reports = new FrontDeskReports(controller);
     }
+
+
+    // =====================================================
+    // MAIN
+    // =====================================================
+
+    public static void main(String[] args) {
+
+        System.out.println(
+                "FrontDeskUI should be started from HotelMain.");
+
+    }
+
 
     // =====================================================
     // RUN
     // =====================================================
 
-    public void run() {
+    public void runFrontDesk() {
 
         boolean running = true;
 
@@ -38,23 +53,35 @@ public class FrontDeskUI {
 
             displayMenu();
 
-            int choice =
-                    readInt("Enter choice: ");
+            int choice = readInt(
+                    "Enter your choice: ");
 
             System.out.println();
 
             switch (choice) {
 
                 case 1:
-                    searchGuest();
+                    searchReservation();
                     break;
 
                 case 2:
-                    showAllReservations();
+                    showReservationDetails();
                     break;
 
                 case 3:
-                    showReport();
+                    showAllReservations();
+                    break;
+
+                case 4:
+                    generateReservationReport();
+                    break;
+
+                case 5:
+                    generateGuestReport();
+                    break;
+
+                case 6:
+                    generateRoomAvailabilityReport();
                     break;
 
                 case 0:
@@ -62,7 +89,7 @@ public class FrontDeskUI {
                     running = false;
 
                     System.out.println(
-                            "Returning to Hotel Menu...");
+                            "Returning to Hotel Main Menu...");
 
                     break;
 
@@ -76,6 +103,7 @@ public class FrontDeskUI {
         }
     }
 
+
     // =====================================================
     // MENU
     // =====================================================
@@ -83,42 +111,118 @@ public class FrontDeskUI {
     private void displayMenu() {
 
         System.out.println(
-                "\n======================================");
+                "\n==============================================");
 
         System.out.println(
-                "          FRONT DESK SYSTEM");
+                "              FRONT DESK");
 
         System.out.println(
-                "======================================");
+                "==============================================");
 
         System.out.println(
-                "1. Search Guest / Reservation");
+                "1. Search Reservation");
 
         System.out.println(
-                "2. View All Reservations");
+                "2. View Complete Reservation Details");
 
         System.out.println(
-                "3. Generate Front Desk Report");
+                "3. View All Reservations");
+
+        System.out.println(
+                "4. Generate Reservation Report");
+
+        System.out.println(
+                "5. Generate Guest Report");
+
+        System.out.println(
+                "6. Generate Room Availability Report");
 
         System.out.println(
                 "0. Back");
 
         System.out.println(
-                "======================================");
+                "==============================================");
     }
 
+
     // =====================================================
-    // SEARCH
+    // SEARCH RESERVATION
     // =====================================================
 
-    private void searchGuest() {
+    private void searchReservation() {
 
         System.out.println(
-                "===== SEARCH GUEST =====");
+                "===== SEARCH RESERVATION =====");
 
         String confirmation =
                 readString(
                         "Enter 8-digit confirmation number: ");
+
+        if (!isValidConfirmationNumber(confirmation)) {
+
+            System.out.println(
+                    "Invalid confirmation number.");
+
+            System.out.println(
+                    "Confirmation number must contain "
+                    + "exactly 8 digits.");
+
+            return;
+        }
+
+        Reservation reservation =
+                controller.findReservation(
+                        confirmation);
+
+        if (reservation == null) {
+
+            System.out.println(
+                    "Reservation not found.");
+
+        } else {
+
+            System.out.println(
+                    "\nReservation found.");
+
+            System.out.println(
+                    "Confirmation : "
+                    + reservation.getConfirmationNumber());
+
+            System.out.println(
+                    "Guest        : "
+                    + reservation.getGuest().getName());
+
+            System.out.println(
+                    "Room Type    : "
+                    + reservation.getRoomType());
+
+            System.out.println(
+                    "Status       : "
+                    + reservation.getStatus());
+        }
+    }
+
+
+    // =====================================================
+    // COMPLETE DETAILS
+    // =====================================================
+
+    private void showReservationDetails() {
+
+        System.out.println(
+                "===== RESERVATION DETAILS =====");
+
+        String confirmation =
+                readString(
+                        "Enter 8-digit confirmation number: ");
+
+        if (!isValidConfirmationNumber(confirmation)) {
+
+            System.out.println(
+                    "Invalid confirmation number.");
+
+            return;
+        }
 
         Reservation reservation =
                 controller.findReservation(
@@ -139,6 +243,7 @@ public class FrontDeskUI {
                         reservation));
     }
 
+
     // =====================================================
     // ALL RESERVATIONS
     // =====================================================
@@ -151,7 +256,8 @@ public class FrontDeskUI {
         Reservation[] reservations =
                 controller.getAllReservations();
 
-        if (reservations.length == 0) {
+        if (reservations == null
+                || reservations.length == 0) {
 
             System.out.println(
                     "No reservations found.");
@@ -159,46 +265,137 @@ public class FrontDeskUI {
             return;
         }
 
+        System.out.println(
+                "------------------------------------------------------------");
+
+        System.out.printf(
+                "%-10s %-20s %-12s %-12s%n",
+                "Confirm",
+                "Guest",
+                "Room Type",
+                "Status");
+
+        System.out.println(
+                "------------------------------------------------------------");
+
         for (int i = 0;
                 i < reservations.length;
                 i++) {
 
-            if (reservations[i] != null) {
+            Reservation reservation =
+                    reservations[i];
 
-                System.out.println(
-                        "\n------------------------------");
-
-                System.out.println(
-                        controller.formatReservationDetails(
-                                reservations[i]));
+            if (reservation == null) {
+                continue;
             }
+
+            String guestName = "-";
+
+            if (reservation.getGuest() != null) {
+
+                guestName =
+                        reservation.getGuest().getName();
+            }
+
+            System.out.printf(
+                    "%-10s %-20s %-12s %-12s%n",
+
+                    reservation.getConfirmationNumber(),
+
+                    guestName,
+
+                    reservation.getRoomType(),
+
+                    reservation.getStatus());
         }
-    }
-
-    // =====================================================
-    // REPORT
-    // =====================================================
-
-    private void showReport() {
 
         System.out.println(
-                controller.generateFrontDeskReport());
+                "------------------------------------------------------------");
+
+        System.out.println(
+                "Total reservations: "
+                + reservations.length);
     }
+
+
+    // =====================================================
+    // RESERVATION REPORT
+    // =====================================================
+
+    private void generateReservationReport() {
+
+        System.out.println(
+                reports.generateReservationReport());
+    }
+
+
+    // =====================================================
+    // GUEST REPORT
+    // =====================================================
+
+    private void generateGuestReport() {
+
+        System.out.println(
+                reports.generateGuestReport());
+    }
+
+
+    // =====================================================
+    // ROOM AVAILABILITY REPORT
+    // =====================================================
+
+    private void generateRoomAvailabilityReport() {
+
+        System.out.println(
+                reports.generateRoomAvailabilityReport());
+    }
+
+
+    // =====================================================
+    // VALIDATE CONFIRMATION NUMBER
+    // =====================================================
+
+    private boolean isValidConfirmationNumber(
+            String confirmation) {
+
+        if (confirmation == null) {
+
+            return false;
+        }
+
+        if (confirmation.length() != 8) {
+
+            return false;
+        }
+
+        for (int i = 0;
+                i < confirmation.length();
+                i++) {
+
+            if (!Character.isDigit(
+                    confirmation.charAt(i))) {
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     // =====================================================
     // INPUT
     // =====================================================
 
-    private String readString(
-            String message) {
+    private String readString(String message) {
 
         System.out.print(message);
 
         return scanner.nextLine().trim();
     }
 
-    private int readInt(
-            String message) {
+
+    private int readInt(String message) {
 
         while (true) {
 
@@ -206,8 +403,10 @@ public class FrontDeskUI {
 
                 System.out.print(message);
 
-                return Integer.parseInt(
-                        scanner.nextLine().trim());
+                String input =
+                        scanner.nextLine().trim();
+
+                return Integer.parseInt(input);
 
             } catch (NumberFormatException e) {
 

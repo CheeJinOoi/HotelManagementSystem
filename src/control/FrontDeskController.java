@@ -1,59 +1,92 @@
 package control;
 
 import entity.Reservation;
-import entity.ReservationStatus;
+import hashing.HashedDictionary;
 
-/**
- * FrontDeskController
- *
- * Front Desk uses the SAME reservation data
- * managed by WalkInBookingControl.
- *
- * No Java Collection Framework is used.
- */
+
 public class FrontDeskController {
 
     private WalkInBookingControl walkIn;
 
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
+    private HashedDictionary<String, Reservation>
+            reservationHash;
 
-    public FrontDeskController(WalkInBookingControl walkIn) {
+
+
+
+    public FrontDeskController(
+            WalkInBookingControl walkIn) {
 
         this.walkIn = walkIn;
+
+        reservationHash =
+                new HashedDictionary<String, Reservation>();
+
+        buildHashTable();
     }
 
-    // =====================================================
-    // SEARCH RESERVATION
-    // =====================================================
 
-    /**
-     * Search reservation using the unique
-     * 8-digit confirmation number.
-     *
-     * The actual search is performed by
-     * WalkInBookingControl.
-     */
-    public Reservation findReservation(String confirmationNumber) {
 
-        if (confirmationNumber == null
-                || confirmationNumber.trim().isEmpty()) {
+    private void buildHashTable() {
 
+        Reservation[] reservations =
+                walkIn.getAllReservations();
+
+        for (int i = 0;
+                i < reservations.length;
+                i++) {
+
+            Reservation reservation =
+                    reservations[i];
+
+            if (reservation == null) {
+                continue;
+            }
+
+            String confirmation =
+                    reservation
+                            .getConfirmationNumber();
+
+            if (confirmation != null
+                    && !confirmation.isEmpty()) {
+
+                reservationHash.add(
+                        confirmation,
+                        reservation);
+            }
+        }
+    }
+
+
+ 
+    public void refreshHashTable() {
+
+        reservationHash.clear();
+
+        buildHashTable();
+    }
+
+
+    
+    public Reservation findReservation(
+            String confirmationNumber) {
+
+        if (confirmationNumber == null) {
             return null;
         }
 
-        return walkIn.findReservation(
-                confirmationNumber.trim());
+        String key =
+                confirmationNumber.trim();
+
+        if (key.isEmpty()) {
+            return null;
+        }
+
+        return reservationHash.getValue(key);
     }
 
-    // =====================================================
-    // FORMAT RESERVATION
-    // =====================================================
 
-    /**
-     * Displays complete guest and reservation information.
-     */
+
     public String formatReservationDetails(
             Reservation reservation) {
 
@@ -66,29 +99,21 @@ public class FrontDeskController {
                 reservation);
     }
 
+
     // =====================================================
     // GET ALL RESERVATIONS
     // =====================================================
 
-    /**
-     * Gets all reservations from the shared
-     * WalkInBookingControl data.
-     *
-     * Uses custom ADT / array.
-     * No ArrayList or Java Collection Framework.
-     */
     public Reservation[] getAllReservations() {
 
         return walkIn.getAllReservations();
     }
 
+
     // =====================================================
-    // FRONT DESK REPORT
+    // REPORT
     // =====================================================
 
-    /**
-     * Generates a simple Front Desk report.
-     */
     public String generateFrontDeskReport() {
 
         Reservation[] reservations =
@@ -97,70 +122,78 @@ public class FrontDeskController {
         if (reservations == null
                 || reservations.length == 0) {
 
-            return "\n====================================\n"
-                    + "      FRONT DESK REPORT\n"
-                    + "====================================\n"
-                    + "No reservation records found.\n";
+            return
+                    "\n============================================\n"
+                  + "          FRONT DESK REPORT\n"
+                  + "============================================\n"
+                  + "No reservation records found.\n";
         }
 
-        int total = reservations.length;
 
+        int total = 0;
         int waiting = 0;
         int assigned = 0;
         int checkedIn = 0;
         int checkedOut = 0;
         int cancelled = 0;
 
+
         for (int i = 0;
                 i < reservations.length;
                 i++) {
 
-            Reservation r = reservations[i];
+            Reservation reservation =
+                    reservations[i];
 
-            if (r == null) {
+            if (reservation == null) {
                 continue;
             }
 
-            ReservationStatus status =
-                    r.getStatus();
+            total++;
 
-            if (status == ReservationStatus.WAITING) {
+            if (reservation.getStatus()
+                    == entity.ReservationStatus.WAITING) {
 
                 waiting++;
 
             } else if (
-                    status == ReservationStatus.ASSIGNED) {
+                    reservation.getStatus()
+                    == entity.ReservationStatus.ASSIGNED) {
 
                 assigned++;
 
             } else if (
-                    status == ReservationStatus.CHECKED_IN) {
+                    reservation.getStatus()
+                    == entity.ReservationStatus.CHECKED_IN) {
 
                 checkedIn++;
 
             } else if (
-                    status == ReservationStatus.CHECKED_OUT) {
+                    reservation.getStatus()
+                    == entity.ReservationStatus.CHECKED_OUT) {
 
                 checkedOut++;
 
             } else if (
-                    status == ReservationStatus.CANCELLED) {
+                    reservation.getStatus()
+                    == entity.ReservationStatus.CANCELLED) {
 
                 cancelled++;
             }
         }
 
+
         StringBuilder report =
                 new StringBuilder();
 
         report.append(
-                "\n====================================================\n");
+                "\n============================================\n");
 
         report.append(
-                "              FRONT DESK REPORT\n");
+                "          FRONT DESK REPORT\n");
 
         report.append(
-                "====================================================\n");
+                "============================================\n");
 
         report.append(
                 "Total Reservations : ")
@@ -193,23 +226,21 @@ public class FrontDeskController {
                 .append("\n");
 
         report.append(
-                "====================================================\n");
+                "============================================\n");
 
         return report.toString();
     }
 
+
     // =====================================================
-    // CONSOLE FRONT DESK
+    // CONSOLE
     // =====================================================
 
-    /**
-     * Runs Front Desk console UI.
-     */
     public void runFrontDesk() {
 
         boundary.FrontDeskUI ui =
                 new boundary.FrontDeskUI(this);
 
-        ui.run();
+        ui.runFrontDesk();
     }
 }
