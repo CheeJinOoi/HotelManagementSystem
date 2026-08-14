@@ -11,9 +11,6 @@ public class FrontDeskController {
     private HashedDictionary<String, Reservation>
             reservationHash;
 
-
-
-
     public FrontDeskController(
             WalkInBookingControl walkIn) {
 
