@@ -83,9 +83,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // SEARCH
-    // =====================================================
 
     @Override
     public V getValue(K key) {
@@ -123,10 +120,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
         return null;
     }
 
-
-    // =====================================================
-    // REMOVE
-    // =====================================================
 
     @Override
     public V remove(K key) {
@@ -173,9 +166,7 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // CONTAINS
-    // =====================================================
+
 
     @Override
     public boolean contains(K key) {
@@ -184,10 +175,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // EMPTY
-    // =====================================================
-
     @Override
     public boolean isEmpty() {
 
@@ -195,9 +182,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // FULL
-    // =====================================================
 
     @Override
     public boolean isFull() {
@@ -207,9 +191,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // SIZE
-    // =====================================================
 
     @Override
     public int getSize() {
@@ -217,10 +198,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
         return numberOfEntries;
     }
 
-
-    // =====================================================
-    // CLEAR
-    // =====================================================
 
     @Override
     public final void clear() {
@@ -236,9 +213,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // HASH FUNCTION
-    // =====================================================
 
     private int getHashIndex(K key) {
 
@@ -256,9 +230,6 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // REHASH
-    // =====================================================
 
     @SuppressWarnings("unchecked")
     private void rehash() {
@@ -291,9 +262,7 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // GET ALL VALUES
-    // =====================================================
+ 
 
     public Object[] getAllValues() {
 
@@ -321,9 +290,7 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // DISPLAY
-    // =====================================================
+
 
     @Override
     public String toString() {
@@ -366,9 +333,7 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // PRIME NUMBER
-    // =====================================================
+    
 
     private int getNextPrime(int number) {
 
@@ -400,9 +365,8 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
     }
 
 
-    // =====================================================
-    // TABLE ENTRY
-    // =====================================================
+   
+
 
     private class TableEntry<S, T> {
 

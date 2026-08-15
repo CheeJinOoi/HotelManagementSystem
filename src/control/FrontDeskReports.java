@@ -3,26 +3,13 @@ package control;
 import entity.Reservation;
 import entity.ReservationStatus;
 
-/**
- * FrontDeskReports
- *
- * Generates analytical reports for Front Desk.
- *
- * Algorithms used:
- * 1. Searching
- * 2. Filtering
- * 3. Insertion Sort
- *
- * No Java Collection Framework is used.
- */
+
 public class FrontDeskReports {
 
     private FrontDeskController controller;
 
 
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
+
 
     public FrontDeskReports(
             FrontDeskController controller) {
@@ -31,10 +18,7 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // REPORT 1
-    // RESERVATION REPORT
-    // =====================================================
+
 
     public Reservation[] getActiveReservationsSortedByCheckIn() {
 
@@ -174,10 +158,6 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // REPORT 2
-    // GUEST REPORT
-    // =====================================================
 
     public String generateGuestReport() {
 
@@ -263,11 +243,6 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // REPORT 3
-    // ROOM AVAILABILITY REPORT
-    // =====================================================
-
     public String generateRoomAvailabilityReport() {
 
         Reservation[] all =
@@ -300,13 +275,7 @@ public class FrontDeskReports {
                 continue;
             }
 
-            /*
-             * Multiple criteria:
-             *
-             * Room Type
-             * AND
-             * Reservation Status
-             */
+
 
             if ("Standard".equalsIgnoreCase(
                     r.getRoomType())) {
@@ -466,10 +435,6 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // FILTER
-    // =====================================================
-
     private boolean isActive(
             Reservation reservation) {
 
@@ -484,9 +449,7 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // INSERTION SORT
-    // =====================================================
+
 
     private void insertionSortByCheckInDate(
             Reservation[] reservations) {
@@ -517,9 +480,7 @@ public class FrontDeskReports {
     }
 
 
-    // =====================================================
-    // COMPARE DATES
-    // =====================================================
+
 
     private boolean isAfter(
             Reservation first,

@@ -97,19 +97,11 @@ public class FrontDeskController {
     }
 
 
-    // =====================================================
-    // GET ALL RESERVATIONS
-    // =====================================================
-
     public Reservation[] getAllReservations() {
 
         return walkIn.getAllReservations();
     }
 
-
-    // =====================================================
-    // REPORT
-    // =====================================================
 
     public String generateFrontDeskReport() {
 
@@ -228,10 +220,6 @@ public class FrontDeskController {
         return report.toString();
     }
 
-
-    // =====================================================
-    // CONSOLE
-    // =====================================================
 
     public void runFrontDesk() {
 
