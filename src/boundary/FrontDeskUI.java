@@ -2,201 +2,351 @@ package boundary;
 
 import control.FrontDeskController;
 import control.FrontDeskReports;
+import entity.Guest;
 import entity.Reservation;
+
 import java.util.Scanner;
 
 public class FrontDeskUI {
 
     private Scanner scanner;
+
     private FrontDeskController controller;
+
     private FrontDeskReports reports;
 
+
     public FrontDeskUI(FrontDeskController controller) {
+
         scanner = new Scanner(System.in);
+
         this.controller = controller;
-        reports = new FrontDeskReports(controller);
+
+        this.reports =
+                new FrontDeskReports(controller);
     }
+
 
     public static void main(String[] args) {
-        ConsoleStyle.info("FrontDeskUI should be started from HotelMain.");
+
+        FrontDeskController controller =
+                new FrontDeskController();
+
+        FrontDeskUI ui =
+                new FrontDeskUI(controller);
+
+        ui.run();
     }
 
-    public void runFrontDesk() {
+
+    public void run() {
+
         boolean running = true;
+
         while (running) {
+
             displayMenu();
-            int choice = readInt("Enter your choice: ");
-            ConsoleStyle.blank();
+
+            int choice =
+                    readInt("Enter your choice: ");
+
+            System.out.println();
 
             switch (choice) {
+
                 case 1:
-                    ConsoleStyle.clear();
-                    searchReservation();
-                    ConsoleStyle.pause(scanner);
+                    searchGuest();
                     break;
+
                 case 2:
-                    ConsoleStyle.clear();
-                    showReservationDetails();
-                    ConsoleStyle.pause(scanner);
+                    searchReservation();
                     break;
+
                 case 3:
-                    ConsoleStyle.clear();
-                    showAllReservations();
-                    ConsoleStyle.pause(scanner);
+                    searchRoomAvailability();
                     break;
+
                 case 4:
-                    ConsoleStyle.clear();
-                    generateReservationReport();
-                    ConsoleStyle.pause(scanner);
+                    checkBill();
                     break;
+
                 case 5:
-                    ConsoleStyle.clear();
-                    generateGuestReport();
-                    ConsoleStyle.pause(scanner);
+                    showVIPGuestReport();
                     break;
+
                 case 6:
-                    ConsoleStyle.clear();
-                    generateRoomAvailabilityReport();
-                    ConsoleStyle.pause(scanner);
+                    showFrontDeskReport();
                     break;
+
                 case 0:
+
                     running = false;
-                    ConsoleStyle.info("Returning to hotel main menu...");
+
+                    System.out.println(
+                            "Returning to Hotel System...");
+
                     break;
+
                 default:
-                    ConsoleStyle.error("Invalid choice.");
-                    ConsoleStyle.pause(scanner);
+
+                    System.out.println(
+                            "Invalid choice.");
             }
-            ConsoleStyle.blank();
+
+            System.out.println();
         }
     }
+
 
     private void displayMenu() {
-        ConsoleStyle.header("FRONT DESK", "Lookup · details · operational reports");
-        ConsoleStyle.menuItem(1, "Search Reservation");
-        ConsoleStyle.menuItem(2, "View Complete Reservation Details");
-        ConsoleStyle.menuItem(3, "View All Reservations");
-        ConsoleStyle.menuItem(4, "Generate Reservation Report");
-        ConsoleStyle.menuItem(5, "Generate Guest Report");
-        ConsoleStyle.menuItem(6, "Generate Room Availability Report");
-        ConsoleStyle.menuExit(0, "Back");
+
+        System.out.println(
+                "\n==============================================");
+
+        System.out.println(
+                "           FRONT DESK SERVICE");
+
+        System.out.println(
+                "==============================================");
+
+        System.out.println(
+                "1. Search Guest");
+
+        System.out.println(
+                "2. Search Reservation");
+
+        System.out.println(
+                "3. Search Room Availability");
+
+        System.out.println(
+                "4. Check Guest Bill");
+
+        System.out.println(
+                "5. View VIP Guest Report");
+
+        System.out.println(
+                "6. View Front Desk Report");
+
+        System.out.println(
+                "0. Exit");
+
+        System.out.println(
+                "==============================================");
     }
+
+
+    private void searchGuest() {
+
+        System.out.println(
+                "\n===== SEARCH GUEST =====");
+
+        System.out.println(
+                "Search using 8-digit confirmation number.");
+
+        String confirmationNumber =
+                readString(
+                        "Confirmation number: ");
+
+        Reservation reservation =
+                controller.findReservation(
+                        confirmationNumber);
+
+        if (reservation == null) {
+
+            System.out.println(
+                    "Reservation not found.");
+
+            return;
+        }
+
+        Guest guest =
+                reservation.getGuest();
+
+        if (guest == null) {
+
+            System.out.println(
+                    "Guest information not available.");
+
+            return;
+        }
+
+        System.out.println(
+                "\n========== GUEST INFORMATION ==========");
+
+        System.out.println(
+                "Confirmation : "
+                + reservation.getConfirmationNumber());
+
+        System.out.println(
+                "Name         : "
+                + guest.getName());
+
+        System.out.println(
+                "IC/Passport  : "
+                + guest.getIdentityNumber());
+
+        System.out.println(
+                "Phone        : "
+                + guest.getPhone());
+
+        System.out.println(
+                "Room Type    : "
+                + reservation.getRoomType());
+
+        System.out.println(
+                "Room         : "
+                + getRoomNumber(reservation));
+
+        System.out.println(
+                "Status       : "
+                + reservation.getStatus());
+
+        System.out.println(
+                "Check-in     : "
+                + reservation.getCheckInDate());
+
+        System.out.println(
+                "Check-out    : "
+                + reservation.getCheckOutDate());
+
+        System.out.println(
+                "========================================");
+    }
+
 
     private void searchReservation() {
-        ConsoleStyle.section("Search reservation");
-        String confirmation = readString("Enter 8-digit confirmation number: ");
 
-        if (!isValidConfirmationNumber(confirmation)) {
-            ConsoleStyle.error("Invalid confirmation number.");
-            ConsoleStyle.info("Confirmation number must contain exactly 8 digits.");
-            return;
-        }
+        System.out.println(
+                "\n===== SEARCH RESERVATION =====");
 
-        Reservation reservation = controller.findReservation(confirmation);
+        String confirmationNumber =
+                readString(
+                        "Enter 8-digit confirmation number: ");
+
+        Reservation reservation =
+                controller.findReservation(
+                        confirmationNumber);
+
         if (reservation == null) {
-            ConsoleStyle.warn("Reservation not found.");
-        } else {
-            ConsoleStyle.success("Reservation found.");
-            ConsoleStyle.keyValue("Confirmation", reservation.getConfirmationNumber());
-            ConsoleStyle.keyValue("Guest", reservation.getGuest().getName());
-            ConsoleStyle.keyValue("Room Type", reservation.getRoomType());
-            ConsoleStyle.keyValue("Status", String.valueOf(reservation.getStatus()));
-        }
-    }
 
-    private void showReservationDetails() {
-        ConsoleStyle.section("Reservation details");
-        String confirmation = readString("Enter 8-digit confirmation number: ");
+            System.out.println(
+                    "Reservation not found.");
 
-        if (!isValidConfirmationNumber(confirmation)) {
-            ConsoleStyle.error("Invalid confirmation number.");
             return;
         }
 
-        Reservation reservation = controller.findReservation(confirmation);
+        System.out.println(
+                controller.formatReservationDetails(
+                        reservation));
+    }
+
+
+    private void searchRoomAvailability() {
+
+        System.out.println(
+                "\n===== ROOM AVAILABILITY =====");
+
+        String roomType =
+                readString(
+                        "Enter room type "
+                        + "(Standard/Deluxe/Suite): ");
+
+        System.out.println();
+
+        String result =
+                controller.searchAvailableRooms(
+                        roomType);
+
+        System.out.println(result);
+    }
+
+
+    private void checkBill() {
+
+        System.out.println(
+                "\n===== CHECK GUEST BILL =====");
+
+        String confirmationNumber =
+                readString(
+                        "Enter 8-digit confirmation number: ");
+
+        String bill =
+                controller.checkBill(
+                        confirmationNumber);
+
+        System.out.println();
+
+        System.out.println(bill);
+    }
+
+
+    private void showVIPGuestReport() {
+
+        System.out.println(
+                "\n===== VIP GUEST REPORT =====");
+
+        System.out.println(
+                reports.generateVIPGuestReport());
+    }
+
+
+
+    private void showFrontDeskReport() {
+
+        System.out.println(
+                "\n===== FRONT DESK REPORT =====");
+
+        System.out.println(
+                reports.generateFrontDeskReport());
+    }
+
+
+    private String getRoomNumber(
+            Reservation reservation) {
+
         if (reservation == null) {
-            ConsoleStyle.warn("Reservation not found.");
-            return;
+            return "-";
         }
 
-        ConsoleStyle.blank();
-        ConsoleStyle.info(controller.formatReservationDetails(reservation));
-    }
+        if (reservation.getAssignedRoomId()
+                == null) {
 
-    private void showAllReservations() {
-        ConsoleStyle.section("All reservations");
-        Reservation[] reservations = controller.getAllReservations();
-
-        if (reservations == null || reservations.length == 0) {
-            ConsoleStyle.warn("No reservations found.");
-            return;
+            return "-";
         }
 
-        ConsoleStyle.tableHeader(String.format("%-10s %-20s %-12s %-12s",
-                "Confirm", "Guest", "Room Type", "Status"));
-
-        for (int i = 0; i < reservations.length; i++) {
-            Reservation reservation = reservations[i];
-            if (reservation == null) {
-                continue;
-            }
-            String guestName = "-";
-            if (reservation.getGuest() != null) {
-                guestName = reservation.getGuest().getName();
-            }
-            ConsoleStyle.tableRow(String.format("%-10s %-20s %-12s %-12s",
-                    reservation.getConfirmationNumber(),
-                    guestName,
-                    reservation.getRoomType(),
-                    reservation.getStatus()));
-        }
-
-        ConsoleStyle.tableFooter("Total reservations: " + reservations.length);
+        return reservation.getAssignedRoomId();
     }
 
-    private void generateReservationReport() {
-        ConsoleStyle.section("Reservation report");
-        ConsoleStyle.info(reports.generateReservationReport());
-    }
 
-    private void generateGuestReport() {
-        ConsoleStyle.section("Guest report");
-        ConsoleStyle.info(reports.generateGuestReport());
-    }
 
-    private void generateRoomAvailabilityReport() {
-        ConsoleStyle.section("Room availability report");
-        ConsoleStyle.info(reports.generateRoomAvailabilityReport());
-    }
+    private String readString(
+            String message) {
 
-    private boolean isValidConfirmationNumber(String confirmation) {
-        if (confirmation == null) {
-            return false;
-        }
-        if (confirmation.length() != 8) {
-            return false;
-        }
-        for (int i = 0; i < confirmation.length(); i++) {
-            if (!Character.isDigit(confirmation.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
+        System.out.print(message);
 
-    private String readString(String message) {
-        ConsoleStyle.prompt(message);
         return scanner.nextLine().trim();
     }
 
-    private int readInt(String message) {
+
+    private int readInt(
+            String message) {
+
         while (true) {
+
             try {
-                ConsoleStyle.prompt(message);
-                String input = scanner.nextLine().trim();
-                return Integer.parseInt(input);
+
+                System.out.print(message);
+
+                String input =
+                        scanner.nextLine();
+
+                return Integer.parseInt(
+                        input.trim());
+
             } catch (NumberFormatException e) {
-                ConsoleStyle.error("Please enter a valid number.");
+
+                System.out.println(
+                        "Please enter a valid number.");
             }
         }
     }
