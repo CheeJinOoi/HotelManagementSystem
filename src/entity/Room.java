@@ -97,6 +97,32 @@ public class Room {
         this.assignedConfirmationNumber = confirmationNumber;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Room other = (Room) obj;
+        return roomId != null && roomId.equalsIgnoreCase(other.roomId);
+    }
+
+    @Override
+    public int hashCode() {
+        return roomId == null ? 0 : roomId.toLowerCase().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s (%s) %s %s",
+                roomId,
+                roomType,
+                currentStatus,
+                occupied ? "Occupied" : "Free");
+    }
+
     /** Clear guest occupancy without changing housekeeping status. */
     public void clearOccupancy() {
         this.occupied = false;

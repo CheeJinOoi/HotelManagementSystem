@@ -36,6 +36,25 @@ public class StatusEntry {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        StatusEntry other = (StatusEntry) obj;
+        return status == other.status
+                && java.util.Objects.equals(timestamp, other.timestamp)
+                && java.util.Objects.equals(updatedBy, other.updatedBy);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(status, timestamp, updatedBy);
+    }
+
+    @Override
     public String toString() {
         return String.format("[%s] %s by %s%s",
                 timestamp,

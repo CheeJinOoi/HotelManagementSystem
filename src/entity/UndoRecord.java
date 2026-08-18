@@ -51,4 +51,30 @@ public class UndoRecord {
     public String getNote() {
         return note;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        UndoRecord other = (UndoRecord) obj;
+        return java.util.Objects.equals(roomId, other.roomId)
+                && fromStatus == other.fromStatus
+                && toStatus == other.toStatus
+                && java.util.Objects.equals(timestamp, other.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(roomId, fromStatus, toStatus, timestamp);
+    }
+
+    @Override
+    public String toString() {
+        return roomId + ": " + fromStatus + " -> " + toStatus
+                + " by " + (updatedBy == null ? "Unknown" : updatedBy);
+    }
 }

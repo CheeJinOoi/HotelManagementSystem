@@ -57,6 +57,10 @@ public class WalkInBookingControl {
     seedSampleDataIfEmpty();
   }
 
+  public HousekeepingController getHousekeepingController() {
+    return housekeeping;
+  }
+
   /**
    * Console menu loop for the Walk-In module.
    * Choice 0 returns to the hotel menu (does not exit the JVM).

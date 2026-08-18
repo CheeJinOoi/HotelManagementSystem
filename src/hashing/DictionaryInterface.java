@@ -50,4 +50,12 @@ public interface DictionaryInterface<K, V> {
   
   /** Task: Removes all entries from the dictionary. */
   public void clear();
+
+  /**
+   * Task: Retrieves all values currently in the dictionary.
+   * Add-on used by reports / guest listing without java.util collections.
+   *
+   * @return an array of the values currently stored
+   */
+  public Object[] getAllValues();
 } // end DictionaryInterface

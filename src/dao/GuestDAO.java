@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Guest;
+import hashing.DictionaryInterface;
 import hashing.HashedDictionary;
 
 /**
@@ -11,7 +12,7 @@ import hashing.HashedDictionary;
  */
 public class GuestDAO {
 
-    private HashedDictionary<String, Guest> guestDictionary;
+    private DictionaryInterface<String, Guest> guestDictionary;
 
     // =====================================================
     // CONSTRUCTOR

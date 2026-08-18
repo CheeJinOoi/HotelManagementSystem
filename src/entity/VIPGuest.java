@@ -85,8 +85,10 @@ public class VIPGuest extends Guest implements Comparable<VIPGuest>, Serializabl
 
     // ===== Setters =====
     public void setTier(MembershipTier tier) { this.tier = tier; }
+    public void setLoyaltyPoints(int loyaltyPoints) { this.loyaltyPoints = loyaltyPoints; }
     public void addLoyaltyPoints(int points) { this.loyaltyPoints += points; }
     public void setEmail(String email) { this.email = email; }
+    public void setMembershipId(String membershipId) { this.membershipId = membershipId; }
     public void setAssignedRoom(Room assignedRoom) { this.assignedRoom = assignedRoom; }
 
     // ✅ ADD THIS SETTER

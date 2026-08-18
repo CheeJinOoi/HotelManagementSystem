@@ -2,9 +2,10 @@ package control;
 
 import entity.HousekeepingStatus;
 import entity.Room;
-import entity.Stack;
 import entity.StatusEntry;
 import entity.UndoRecord;
+import adt.ArrayStack;
+import adt.StackInterface;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,15 +33,15 @@ public class HousekeepingController {
     private final Room[] rooms;
     private int roomCount;
     /** Stack of past actions so the supervisor can undo mistakes. */
-    private final Stack<UndoRecord> undoStack;
+    private final StackInterface<UndoRecord> undoStack;
     /** Stack of undone actions so redo can re-apply them. */
-    private final Stack<UndoRecord> redoStack;
+    private final StackInterface<UndoRecord> redoStack;
 
     public HousekeepingController(int capacity) {
         this.rooms = new Room[capacity];
         this.roomCount = 0;
-        this.undoStack = new Stack<>();
-        this.redoStack = new Stack<>();
+        this.undoStack = new ArrayStack<>();
+        this.redoStack = new ArrayStack<>();
     }
 
     /** Add a room into the hotel inventory. */
@@ -137,13 +138,13 @@ public class HousekeepingController {
             builder.append("ROOM|")
                     .append(room.getRoomId()).append("|")
                     .append(room.getRoomType()).append("|")
-                    .append(room.getCurrentStatus()).append(System.lineSeparator());
+                    .append(room.getCurrentStatus().name()).append(System.lineSeparator());
 
             StatusEntry[] history = room.getTaskLog().toArray();
             for (int j = 1; j < history.length; j++) {
                 StatusEntry entry = history[j];
                 builder.append("ENTRY|")
-                        .append(entry.getStatus()).append("|")
+                        .append(entry.getStatus().name()).append("|")
                         .append(entry.getTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).append("|")
                         .append(entry.getUpdatedBy() == null ? "" : entry.getUpdatedBy()).append("|")
                         .append(entry.getNote() == null ? "" : entry.getNote()).append(System.lineSeparator());
@@ -176,10 +177,10 @@ public class HousekeepingController {
                     if (currentRoom != null) {
                         addRoom(currentRoom);
                     }
-                    currentRoom = new Room(parts[1], parts[2], HousekeepingStatus.valueOf(parts[3]));
+                    currentRoom = new Room(parts[1], parts[2], parseStatus(parts[3]));
                 } else if (parts[0].equals("ENTRY") && currentRoom != null) {
                     StatusEntry entry = new StatusEntry(
-                            HousekeepingStatus.valueOf(parts[1]),
+                            parseStatus(parts[1]),
                             LocalDateTime.parse(parts[2], DateTimeFormatter.ISO_LOCAL_DATE_TIME),
                             parts[3],
                             parts[4]
@@ -191,6 +192,23 @@ public class HousekeepingController {
 
         if (currentRoom != null) {
             addRoom(currentRoom);
+        }
+    }
+
+    private HousekeepingStatus parseStatus(String text) {
+        if (text == null) {
+            return HousekeepingStatus.DIRTY;
+        }
+        try {
+            return HousekeepingStatus.valueOf(text.trim());
+        } catch (IllegalArgumentException ignored) {
+            HousekeepingStatus[] values = HousekeepingStatus.values();
+            for (int i = 0; i < values.length; i++) {
+                if (values[i].toString().equalsIgnoreCase(text.trim())) {
+                    return values[i];
+                }
+            }
+            return HousekeepingStatus.DIRTY;
         }
     }
 

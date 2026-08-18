@@ -38,83 +38,82 @@ public class FrontDeskReports {
      * filters VIP-related records,
      * then sorts by guest name.
      */
+    public Reservation[] getVIPReservations() {
+
+        Reservation[] all =
+                controller.getAllReservations();
+
+        if (all == null || all.length == 0) {
+            return new Reservation[0];
+        }
+
+        int count = 0;
+        for (int i = 0; i < all.length; i++) {
+            if (isVipReservation(all[i], all)) {
+                count++;
+            }
+        }
+
+        Reservation[] vipReservations = new Reservation[count];
+        int index = 0;
+        for (int i = 0; i < all.length; i++) {
+            if (isVipReservation(all[i], all)) {
+                vipReservations[index] = all[i];
+                index++;
+            }
+        }
+        insertionSortByGuestName(vipReservations);
+        return vipReservations;
+    }
+
+    public String getVipLevel(Reservation reservation) {
+        Reservation[] all = controller.getAllReservations();
+        if (reservation == null || reservation.getGuest() == null || all == null) {
+            return "-";
+        }
+        int reservationCount = countGuestReservations(all, reservation.getGuest().getIdentityNumber());
+        if (reservationCount >= 3) {
+            return "Gold VIP";
+        }
+        if (reservationCount > 1) {
+            return "VIP";
+        }
+        if (reservation.getStatus() == ReservationStatus.CHECKED_IN) {
+            return "In-house VIP";
+        }
+        return "-";
+    }
+
+    public Reservation[] getReservationsSortedByConfirmation() {
+        Reservation[] all = controller.getAllReservations();
+        if (all == null || all.length == 0) {
+            return new Reservation[0];
+        }
+        Reservation[] sorted = copyReservations(all);
+        insertionSortByConfirmation(sorted);
+        return sorted;
+    }
+
     public String generateVIPGuestReport() {
 
         Reservation[] all =
                 controller.getAllReservations();
 
         if (all == null || all.length == 0) {
-
             return "\nNo reservation data available.\n";
         }
 
-
-        // -------------------------------------------------
-        // Count valid records
-        // -------------------------------------------------
-
-        int count = 0;
-
-        for (int i = 0;
-                i < all.length;
-                i++) {
-
-            if (all[i] != null
-                    && all[i].getGuest() != null) {
-
-                count++;
-            }
-        }
-
-
-        // -------------------------------------------------
-        // Copy into array
-        // -------------------------------------------------
-
-        Reservation[] filtered =
-                new Reservation[count];
-
-        int index = 0;
-
-        for (int i = 0;
-                i < all.length;
-                i++) {
-
-            if (all[i] != null
-                    && all[i].getGuest() != null) {
-
-                filtered[index] =
-                        all[i];
-
-                index++;
-            }
-        }
-
-
-        // -------------------------------------------------
-        // Sort by guest name
-        // -------------------------------------------------
-
-        insertionSortByGuestName(
-                filtered);
-
-
-        // -------------------------------------------------
-        // Generate report
-        // -------------------------------------------------
-
-        StringBuilder report =
-                new StringBuilder();
+        Reservation[] vipReservations = getVIPReservations();
+        StringBuilder report = new StringBuilder();
 
         report.append(
                 "\n==============================================================\n");
-
         report.append(
                 "                 VIP GUEST REPORT\n");
-
         report.append(
                 "==============================================================\n");
-
+        report.append(
+                "VIP criteria: repeat guest OR currently checked-in\n");
         report.append(
                 String.format(
                         "%-20s %-12s %-18s %-12s %-15s\n",
@@ -123,87 +122,44 @@ public class FrontDeskReports {
                         "Room",
                         "Status",
                         "VIP Level"));
-
         report.append(
                 "--------------------------------------------------------------\n");
 
-
-        int vipCount = 0;
-
-
-        for (int i = 0;
-                i < filtered.length;
-                i++) {
-
-            Reservation reservation =
-                    filtered[i];
-
-            Guest guest =
-                    reservation.getGuest();
-
-            String guestName =
-                    guest.getName();
-
-            int reservationCount =
-                    countGuestReservations(
-                            all,
-                            guest.getIdentityNumber());
-
-            boolean vip =
-                    reservationCount > 1
-                    || reservation.getStatus()
-                    == ReservationStatus.CHECKED_IN;
-
-
-            if (vip) {
-
-                vipCount++;
-
-                String vipLevel;
-
-                if (reservationCount >= 3) {
-
-                    vipLevel = "VIP";
-
-                } else {
-
-                    vipLevel = "VIP";
-                }
-
-
-                String room =
-                        reservation.getAssignedRoomId();
-
-                if (room == null) {
-                    room = "-";
-                }
-
-
-                report.append(
-                        String.format(
-                                "%-20s %-12s %-18s %-12s %-15s\n",
-                                guestName,
-                                reservation.getConfirmationNumber(),
-                                room,
-                                reservation.getStatus(),
-                                vipLevel));
+        for (int i = 0; i < vipReservations.length; i++) {
+            Reservation reservation = vipReservations[i];
+            Guest guest = reservation.getGuest();
+            String room = reservation.getAssignedRoomId();
+            if (room == null) {
+                room = "-";
             }
+            report.append(
+                    String.format(
+                            "%-20s %-12s %-18s %-12s %-15s\n",
+                            guest.getName(),
+                            reservation.getConfirmationNumber(),
+                            room,
+                            reservation.getStatus(),
+                            getVipLevel(reservation)));
         }
 
-
         report.append(
                 "--------------------------------------------------------------\n");
-
         report.append(
                 "Total VIP records : "
-                + vipCount
+                + vipReservations.length
                 + "\n");
-
         report.append(
                 "==============================================================\n");
-
-
         return report.toString();
+    }
+
+    private boolean isVipReservation(Reservation reservation, Reservation[] all) {
+        if (reservation == null || reservation.getGuest() == null) {
+            return false;
+        }
+        int reservationCount = countGuestReservations(all, reservation.getGuest().getIdentityNumber());
+        return reservationCount > 1
+                || reservation.getStatus() == ReservationStatus.CHECKED_IN;
     }
 
 

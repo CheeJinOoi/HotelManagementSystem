@@ -1,5 +1,12 @@
 package adt;
 
+/**
+ * HeapPriorityQueue.java
+ * Array-based max-heap implementation of PriorityQueueInterface.
+ *
+ * Implementation approach: binary heap in a linear array (index 1 = root).
+ * Adapted from the course sample heap / priority-queue style (Frank M. Carrano).
+ */
 public class HeapPriorityQueue<T extends Comparable<T>> 
         implements PriorityQueueInterface<T> {
     
@@ -47,6 +54,11 @@ public class HeapPriorityQueue<T extends Comparable<T>>
     @Override
     public boolean isEmpty() {
         return size == 0;
+    }
+
+    @Override
+    public boolean isFull() {
+        return false;
     }
     
     @Override

@@ -1,5 +1,12 @@
 package hashing;
 
+/**
+ * HashedDictionary.java
+ * Open-addressing hash table implementation of DictionaryInterface.
+ *
+ * Adapted from the course sample hashed dictionary (Frank M. Carrano).
+ * Linear probing, lazy deletion, and rehashing are used for this assignment.
+ */
 public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
 
     private TableEntry<K, V>[] hashTable;
@@ -264,6 +271,7 @@ public class HashedDictionary<K, V> implements DictionaryInterface<K, V> {
 
  
 
+    @Override
     public Object[] getAllValues() {
 
         Object[] values =

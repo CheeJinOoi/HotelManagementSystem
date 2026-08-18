@@ -3,6 +3,7 @@ package control;
 import entity.Reservation;
 import entity.ReservationStatus;
 import entity.Room;
+import hashing.DictionaryInterface;
 import hashing.HashedDictionary;
 
 
@@ -12,7 +13,7 @@ public class FrontDeskController {
     private WalkInBookingControl walkIn;
 
  
-    private HashedDictionary<String, Reservation> reservationHash;
+    private DictionaryInterface<String, Reservation> reservationHash;
 
   
     private HousekeepingController housekeeping;
@@ -197,6 +198,46 @@ public class FrontDeskController {
     public void refreshReservationHash() {
 
         buildReservationHash();
+    }
+
+    public void refreshHashTable() {
+        refreshReservationHash();
+    }
+
+    public String searchAvailableRooms(String roomType) {
+        return searchRoomAvailability(roomType);
+    }
+
+    public String checkBill(String confirmationNumber) {
+        return getGuestBill(confirmationNumber);
+    }
+
+    public Room[] getAvailableRooms(String roomType) {
+        if (roomType == null || housekeeping == null) {
+            return new Room[0];
+        }
+        Room[] rooms = housekeeping.getAllRooms();
+        int count = getAvailableRoomCount(roomType);
+        Room[] available = new Room[count];
+        int index = 0;
+        for (int i = 0; i < rooms.length; i++) {
+            if (rooms[i] == null) {
+                continue;
+            }
+            if (roomType.equalsIgnoreCase(rooms[i].getRoomType())
+                    && rooms[i].isReadyForAssignment()) {
+                available[index] = rooms[i];
+                index++;
+            }
+        }
+        return available;
+    }
+
+    public Room[] getAllRooms() {
+        if (housekeeping == null) {
+            return new Room[0];
+        }
+        return housekeeping.getAllRooms();
     }
 
 
