@@ -250,8 +250,9 @@ public class VIPRoomAllocationGUI extends JPanel {
         );
 
         if (confirm == JOptionPane.OK_OPTION) {
-            control.allocateRoom();
-            infoArea.setText("Room allocated successfully.");
+            String message = control.allocateRoom();
+            infoArea.setText(message);
+            JOptionPane.showMessageDialog(this, message);
             refresh();
             notifyDataChanged();
         }

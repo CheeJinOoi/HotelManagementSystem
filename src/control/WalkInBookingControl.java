@@ -195,7 +195,7 @@ public class WalkInBookingControl {
 
   /**
    * Serve the front of the pending queue (FIFO).
-   * Needs a free room of the requested type with housekeeping status Ready for Check-In.
+   * Needs a free room of the requested type with housekeeping status Clean.
    */
   public String assignNextGuestToRoom() {
     if (pendingQueue.isEmpty()) {
@@ -258,8 +258,8 @@ public class WalkInBookingControl {
     if (!foundOccupied) {
       message.append("- none\n");
     }
-    message.append("\nMake a FREE ").append(front.getRoomType())
-        .append(" room Ready for Check-In in Housekeeping,")
+        message.append("\nMake a FREE ").append(front.getRoomType())
+        .append(" room Clean in Housekeeping,")
         .append(" or check out the guest blocking that room first.");
     return message.toString();
   }
@@ -299,19 +299,28 @@ public class WalkInBookingControl {
   }
 
   public void checkOutGuest() {
-    bookingUI.displayMessage(checkOutGuest(bookingUI.inputConfirmationNumber()));
+    bookingUI.displayMessage(checkOutGuest(bookingUI.inputCheckoutKey()));
   }
 
   /**
    * End a stay: free the room and mark it Dirty for housekeeping.
+   * Accepts a confirmation number or an occupied room ID.
    */
-  public String checkOutGuest(String confirmationNumber) {
-    if (isBlank(confirmationNumber)) {
-      return "Confirmation number is required.";
+  public String checkOutGuest(String confirmationOrRoomId) {
+    if (isBlank(confirmationOrRoomId)) {
+      return "Confirmation number or room ID is required.";
     }
-    Reservation found = findInQueue(historyQueue, confirmationNumber.trim());
+    String key = confirmationOrRoomId.trim();
+    Reservation found = findInQueue(historyQueue, key);
     if (found == null) {
-      return "No reservation found for confirmation " + confirmationNumber + ".";
+      Room occupiedRoom = findRoomByIdOrConfirmation(key);
+      if (occupiedRoom != null && occupiedRoom.isOccupied()
+          && occupiedRoom.getAssignedConfirmationNumber() != null) {
+        found = findInQueue(historyQueue, occupiedRoom.getAssignedConfirmationNumber());
+      }
+    }
+    if (found == null) {
+      return "No walk-in reservation found for " + key + ".";
     }
     if (found.getStatus() != ReservationStatus.CHECKED_IN
         && found.getStatus() != ReservationStatus.ASSIGNED) {
@@ -324,9 +333,32 @@ public class WalkInBookingControl {
     }
     found.setStatus(ReservationStatus.CHECKED_OUT);
     saveReservations();
+    HotelBootstrap.save(housekeeping);
     return "Checked out confirmation " + found.getConfirmationNumber()
         + ". Room " + (found.getAssignedRoomId() == null ? "-" : found.getAssignedRoomId())
         + " is now dirty and sent to housekeeping.";
+  }
+
+  public Room findRoomByIdOrConfirmation(String roomIdOrConfirmation) {
+    if (isBlank(roomIdOrConfirmation)) {
+      return null;
+    }
+    String key = roomIdOrConfirmation.trim();
+    Room byId = findRoomById(key);
+    if (byId != null) {
+      return byId;
+    }
+    Room[] rooms = housekeeping.getAllRooms();
+    if (rooms == null) {
+      return null;
+    }
+    for (int i = 0; i < rooms.length; i++) {
+      Room room = rooms[i];
+      if (room != null && key.equals(room.getAssignedConfirmationNumber())) {
+        return room;
+      }
+    }
+    return null;
   }
 
   public Room[] getAllRooms() {
@@ -342,7 +374,7 @@ public class WalkInBookingControl {
     StringBuilder report = new StringBuilder();
     report.append("==============================================================\n");
     report.append(" ROOM STATUS BOARD (Walk-In assignment)\n");
-    report.append(" A room can be assigned only when it is Ready for Check-In and free.\n");
+    report.append(" A room can be assigned only when it is Clean and free.\n");
     report.append("==============================================================\n");
     report.append(String.format("%-8s %-10s %-22s %-10s %-12s %-16s\n",
         "Room", "Type", "Housekeeping", "Occupancy", "Can Assign", "Assigned To"));
@@ -810,7 +842,12 @@ public class WalkInBookingControl {
   private void syncRoomOccupancy() {
     Room[] allRooms = housekeeping.getAllRooms();
     for (int i = 0; i < allRooms.length; i++) {
-      allRooms[i].clearOccupancy();
+      Room room = allRooms[i];
+      String currentConf = room.getAssignedConfirmationNumber();
+      Reservation currentWalkIn = currentConf == null ? null : findInQueue(historyQueue, currentConf);
+      if (currentWalkIn != null) {
+        room.clearOccupancy();
+      }
     }
     for (int i = 1; i <= historyQueue.getNumberOfEntries(); i++) {
       Reservation reservation = historyQueue.getEntry(i);
@@ -856,7 +893,27 @@ public class WalkInBookingControl {
     pendingQueue.enqueue(standardWaiting);
     historyQueue.enqueue(standardWaiting);
 
-    // Past stay already checked out — does not block ready rooms
+    Reservation extraStandard = new Reservation("10000007",
+        new Guest("Lisa Wong", "930404-08-3344", "018-7777777"),
+        "Standard", today, today.plusDays(3), now.minusHours(1),
+        BookingType.WALK_IN, ReservationStatus.WAITING);
+    pendingQueue.enqueue(extraStandard);
+    historyQueue.enqueue(extraStandard);
+
+    Reservation extraDeluxe = new Reservation("10000008",
+        new Guest("Ahmad Faiz", "910212-10-5566", "014-8888888"),
+        "Deluxe", today.plusDays(2), today.plusDays(5), now.minusMinutes(40),
+        BookingType.STANDARD, ReservationStatus.WAITING);
+    pendingQueue.enqueue(extraDeluxe);
+    historyQueue.enqueue(extraDeluxe);
+
+    Reservation inHouse = new Reservation("10000006",
+        new Guest("David Chong", "870808-14-7788", "011-5555555"),
+        "Deluxe", today, today.plusDays(2), now.minusHours(8),
+        BookingType.WALK_IN, ReservationStatus.CHECKED_IN);
+    inHouse.setAssignedRoomId("201");
+    historyQueue.enqueue(inHouse);
+
     Reservation checkedOut = new Reservation("10000004",
         new Guest("Sarah Tan", "920512-14-3456", "019-4444444"),
         "Standard", today.minusDays(3), today.minusDays(1), now.minusDays(3),

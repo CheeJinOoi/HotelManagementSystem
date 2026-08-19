@@ -189,7 +189,7 @@ public class HotelSystemTest {
         check("VIP module uses same room objects as housekeeping",
             vip.getRooms() == housekeeping.getAllRooms() || vip.getRooms().length == housekeeping.getAllRooms().length);
         vip.addVIPGuest(new entity.VIPGuest("Test VIP", "900101-14-0000", "012-0000000",
-            "VIPTEST", entity.VIPGuest.MembershipTier.PLATINUM, 100, "vip@test.com"));
+            entity.VIPGuest.MembershipTier.PLATINUM, "Standard"));
         check("VIP guest can be added to shared module", vip.getQueueSize() >= 1);
     }
 

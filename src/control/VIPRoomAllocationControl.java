@@ -74,10 +74,7 @@ public class VIPRoomAllocationControl {
         }
         allVIPGuests[guestCount++] = guest;
         queue.enqueue(guest);
-        System.out.println("✅ VIP Added: " + guest);
-
-        // ✅ Auto-assign if room available
-        tryAutoAllocate();
+        System.out.println("✅ VIP Added (waiting): " + guest);
     }
 
     public void addVIPGuest(String name, String identityNumber, String phone,
@@ -86,36 +83,14 @@ public class VIPRoomAllocationControl {
         addVIPGuest(guest);
     }
 
-    // ===== Try Auto-Allocate =====
-    private void tryAutoAllocate() {
-        if (!queue.isEmpty()) {
-            VIPGuest guest = queue.peek();
-            String preferredType = guest.getPreferredRoomType();
-
-            // First: try preferred room type
-            for (int i = 0; i < roomCount; i++) {
-                if (rooms[i].getRoomType().equalsIgnoreCase(preferredType) &&
-                    rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
-                    allocateRoom();
-                    return;
-                }
-            }
-
-            // Second: try any room
-            for (int i = 0; i < roomCount; i++) {
-                if (rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
-                    allocateRoom();
-                    return;
-                }
-            }
-        }
-    }
-
-    // ===== Allocate Room =====
-    public void allocateRoom() {
+    /**
+     * Assign a room to the highest-tier waiting VIP (heap front).
+     * Called only when the user chooses Allocate Room — not after add or release.
+     */
+    public String allocateRoom() {
         if (queue.isEmpty()) {
             System.out.println("⚠️ No VIP guests waiting.");
-            return;
+            return "No VIP guests waiting.";
         }
 
         Room availableRoom = null;
@@ -142,9 +117,10 @@ public class VIPRoomAllocationControl {
         }
 
         if (availableRoom == null) {
-            System.out.println("⚠️ No rooms available for " + guest.getName() +
-                               " (preferred: " + preferredType + ")");
-            return;
+            String message = "No Clean free rooms for " + guest.getName()
+                + " (preferred: " + preferredType + ").";
+            System.out.println("⚠️ " + message);
+            return message;
         }
 
         guest = queue.dequeue();
@@ -163,8 +139,11 @@ public class VIPRoomAllocationControl {
                 " -> " + guest.getName() + " [" + guest.getTier().getDisplay() +
                 "] (Conf: " + confirmationNumber + ")";
 
-        System.out.println("🏠 Allocated: Room " + availableRoom.getRoomId() +
-                " to " + guest.getName() + " (Conf: " + confirmationNumber + ")");
+        String message = "Allocated room " + availableRoom.getRoomId()
+                + " to " + guest.getName() + " [" + guest.getTier().getDisplay()
+                + "] (Conf: " + confirmationNumber + ").";
+        System.out.println("🏠 " + message);
+        return message;
     }
 
     // ===== Release Room =====
@@ -200,12 +179,6 @@ public class VIPRoomAllocationControl {
                 }
 
                 System.out.println("🔓 Room " + roomId + " released and set to DIRTY.");
-
-                // ✅ Auto-allocate next VIP
-                if (!queue.isEmpty()) {
-                    System.out.println("🔄 Auto-allocating next VIP...");
-                    tryAutoAllocate();
-                }
                 return;
             }
         }

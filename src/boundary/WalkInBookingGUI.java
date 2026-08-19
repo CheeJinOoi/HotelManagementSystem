@@ -1,9 +1,11 @@
 package boundary;
 
+import control.VIPRoomAllocationControl;
 import control.WalkInBookingControl;
 import entity.Guest;
 import entity.Reservation;
 import entity.Room;
+import entity.VIPGuest;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -45,6 +47,7 @@ public class WalkInBookingGUI extends JPanel {
   };
 
   private final WalkInBookingControl controller;
+  private VIPRoomAllocationControl vipControl;
   private final DefaultTableModel queueTableModel;
   private final DefaultTableModel roomTableModel;
   private final JTable queueTable;
@@ -82,6 +85,10 @@ public class WalkInBookingGUI extends JPanel {
 
     initComponents();
     refresh();
+  }
+
+  public void setVipControl(VIPRoomAllocationControl vipControl) {
+    this.vipControl = vipControl;
   }
 
   public void setOnDataChanged(Runnable onDataChanged) {
@@ -296,16 +303,48 @@ public class WalkInBookingGUI extends JPanel {
   }
 
   private void checkOutReservation() {
-    String confirmation = promptText("Enter confirmation number to check out:");
-    if (confirmation == null) {
+    String key = null;
+    String selectedRoom = selectedRoomId();
+    if (selectedRoom != null) {
+      Room room = controller.findRoomByIdOrConfirmation(selectedRoom);
+      if (room != null && room.isOccupied()) {
+        key = room.getAssignedConfirmationNumber() != null
+            ? room.getAssignedConfirmationNumber() : selectedRoom;
+        if (!confirmAction(
+            "Check out the guest in room " + selectedRoom
+                + " (confirmation " + key + ")?",
+            "Confirm Check-Out")) {
+          return;
+        }
+        completeCheckout(key);
+        return;
+      }
+    }
+
+    key = promptText("Enter confirmation number or room ID to check out:");
+    if (key == null) {
       return;
     }
 
-    if (!confirmAction("Check out reservation " + confirmation + "?", "Confirm Check-Out")) {
+    if (!confirmAction("Check out " + key + "?", "Confirm Check-Out")) {
       return;
     }
+    completeCheckout(key);
+  }
 
-    showResult(controller.checkOutGuest(confirmation));
+  private void completeCheckout(String confirmationOrRoomId) {
+    String message = controller.checkOutGuest(confirmationOrRoomId);
+    if (message.startsWith("No walk-in reservation") && vipControl != null) {
+      Room room = controller.findRoomByIdOrConfirmation(confirmationOrRoomId);
+      if (room != null && room.isOccupied()) {
+        String roomId = room.getRoomId();
+        vipControl.releaseRoom(roomId);
+        message = "Checked out VIP occupant of room " + roomId
+            + ". Room is now dirty and sent to housekeeping.";
+        control.HotelBootstrap.save(controller.getHousekeepingController());
+      }
+    }
+    showResult(message);
     refresh();
     notifyDataChanged();
   }
@@ -355,15 +394,7 @@ public class WalkInBookingGUI extends JPanel {
       if (room == null) {
         continue;
       }
-      String assigned = "-";
-      if (room.getAssignedConfirmationNumber() != null) {
-        Reservation reservation = controller.findReservation(room.getAssignedConfirmationNumber());
-        if (reservation != null && reservation.getGuest() != null) {
-          assigned = reservation.getGuest().getName();
-        } else {
-          assigned = room.getAssignedConfirmationNumber();
-        }
-      }
+      String assigned = occupantDisplay(room);
       roomTableModel.addRow(new Object[] {
           room.getRoomId(),
           room.getRoomType(),
@@ -373,6 +404,24 @@ public class WalkInBookingGUI extends JPanel {
           assigned
       });
     }
+  }
+
+  private String occupantDisplay(Room room) {
+    if (room == null || !room.isOccupied() || room.getAssignedConfirmationNumber() == null) {
+      return "-";
+    }
+    String confirmation = room.getAssignedConfirmationNumber();
+    Reservation reservation = controller.findReservation(confirmation);
+    if (reservation != null && reservation.getGuest() != null) {
+      return reservation.getGuest().getName();
+    }
+    if (vipControl != null) {
+      VIPGuest vip = vipControl.searchByConfirmationNumber(confirmation);
+      if (vip != null) {
+        return vip.getName() + " (VIP)";
+      }
+    }
+    return confirmation;
   }
 
   private void showSelectedDetails() {

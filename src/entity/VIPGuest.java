@@ -98,11 +98,16 @@ public class VIPGuest extends Guest implements Comparable<VIPGuest>, Serializabl
         this.assignedRoom = assignedRoom;
     }
 
-    // ===== Compare by Tier Priority =====
+    /**
+     * Higher membership tier is greater so the max-heap keeps Elite at the front.
+     * Order is Elite > Diamond > Platinum. Arrival time is not used.
+     */
     @Override
     public int compareTo(VIPGuest other) {
-        // Higher priority tier comes first (ELITE > DIAMOND > PLATINUM)
-        return Integer.compare(other.tier.getPriority(), this.tier.getPriority());
+        if (other == null) {
+            return 1;
+        }
+        return Integer.compare(this.tier.getPriority(), other.tier.getPriority());
     }
 
     // ===== equals/hashCode using phone number (since membershipId removed) =====

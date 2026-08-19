@@ -5,9 +5,9 @@ package entity;
  * Allowed cleaning states for a room.
  *
  * Normal flow (one step at a time):
- * DIRTY -> CLEANING_IN_PROGRESS -> INSPECTED -> READY_FOR_CHECKIN
+ * DIRTY -> CLEANING_IN_PROGRESS -> INSPECTED -> READY_FOR_CHECKIN (shown as Clean)
  *
- * Walk-In may assign a guest only when status is READY_FOR_CHECKIN
+ * Walk-In may assign a guest only when status is Clean (READY_FOR_CHECKIN)
  * and the room is not occupied.
  */
 public enum HousekeepingStatus {
@@ -16,7 +16,7 @@ public enum HousekeepingStatus {
     INSPECTED,
     READY_FOR_CHECKIN;
 
-    /** Next status in the normal cleaning workflow, or null if already Ready. */
+    /** Next status in the normal cleaning workflow, or null if already Clean. */
     public HousekeepingStatus next() {
         switch (this) {
             case DIRTY:
@@ -30,7 +30,7 @@ public enum HousekeepingStatus {
         }
     }
 
-    /** Previous status (used conceptually; undo uses stored UndoRecord). */
+    /** Previous status in the cleaning workflow, or null if already Dirty. */
     public HousekeepingStatus previous() {
         switch (this) {
             case CLEANING_IN_PROGRESS:
@@ -44,12 +44,12 @@ public enum HousekeepingStatus {
         }
     }
 
-    /** Only allow moving one step forward in the cleaning chain. */
+    /** Allow moving one step forward or one step backward. */
     public boolean canTransitionTo(HousekeepingStatus target) {
         if (target == null) {
             return false;
         }
-        return target == next();
+        return target == next() || target == previous();
     }
 
     @Override
@@ -58,7 +58,7 @@ public enum HousekeepingStatus {
             case CLEANING_IN_PROGRESS:
                 return "Cleaning In Progress";
             case READY_FOR_CHECKIN:
-                return "Ready For Check-In";
+                return "Clean";
             default:
                 return name().replace('_', ' ');
         }

@@ -9,8 +9,8 @@ import java.nio.file.Path;
  * HotelBootstrap.java
  * Starts the shared hotel room inventory used by BOTH modules.
  *
- * Walk-In needs rooms that are Ready for Check-In and free.
- * Housekeeping updates cleaning status (Dirty -> ... -> Ready for Check-In).
+ * Walk-In needs rooms that are Clean and free.
+ * Housekeeping updates cleaning status (Dirty -> ... -> Clean).
  * Keeping one HousekeepingController instance avoids two conflicting room lists.
  *
  * @author vinsx

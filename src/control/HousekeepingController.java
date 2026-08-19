@@ -88,6 +88,30 @@ public class HousekeepingController {
         return "Status updated successfully.";
     }
 
+    public String stepStatusForward(String roomId) {
+        Room room = findRoomById(roomId);
+        if (room == null) {
+            return "Room not found.";
+        }
+        HousekeepingStatus next = room.getCurrentStatus().next();
+        if (next == null) {
+            return "Room " + roomId + " is already Clean.";
+        }
+        return updateRoomStatus(roomId, next, "Housekeeping", "Next status");
+    }
+
+    public String stepStatusBack(String roomId) {
+        Room room = findRoomById(roomId);
+        if (room == null) {
+            return "Room not found.";
+        }
+        HousekeepingStatus previous = room.getCurrentStatus().previous();
+        if (previous == null) {
+            return "Room " + roomId + " is already Dirty.";
+        }
+        return updateRoomStatus(roomId, previous, "Housekeeping", "Previous status");
+    }
+
     /** Undo the latest status change (LIFO). */
     public String undoLastAction() {
         if (undoStack.isEmpty()) {
@@ -199,12 +223,18 @@ public class HousekeepingController {
         if (text == null) {
             return HousekeepingStatus.DIRTY;
         }
+        String trimmed = text.trim();
+        if (trimmed.equalsIgnoreCase("Clean")
+                || trimmed.equalsIgnoreCase("Ready For Check-In")
+                || trimmed.equalsIgnoreCase("Ready for Check-In")) {
+            return HousekeepingStatus.READY_FOR_CHECKIN;
+        }
         try {
-            return HousekeepingStatus.valueOf(text.trim());
+            return HousekeepingStatus.valueOf(trimmed);
         } catch (IllegalArgumentException ignored) {
             HousekeepingStatus[] values = HousekeepingStatus.values();
             for (int i = 0; i < values.length; i++) {
-                if (values[i].toString().equalsIgnoreCase(text.trim())) {
+                if (values[i].toString().equalsIgnoreCase(trimmed)) {
                     return values[i];
                 }
             }

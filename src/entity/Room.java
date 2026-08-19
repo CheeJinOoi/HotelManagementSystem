@@ -4,7 +4,7 @@ package entity;
  * Room.java
  * Shared hotel room used by Walk-In and Housekeeping.
  *
- * Housekeeping cares about cleaning status (Dirty -> Ready for Check-In).
+ * Housekeeping cares about cleaning status (Dirty -> Clean).
  * Walk-In cares about whether the room is free (occupied flag) and Ready.
  * A room can be assigned only when isReadyForAssignment() is true.
  */

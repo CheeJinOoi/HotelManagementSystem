@@ -7,21 +7,26 @@ import entity.StatusEntry;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
-import java.awt.GridLayout;
+import java.awt.Font;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 /**
  * HousekeepingGUI.java
@@ -35,6 +40,7 @@ public class HousekeepingGUI extends JPanel {
   private final DefaultTableModel roomTableModel;
   private final JTable roomTable;
   private final JTextArea infoArea;
+  private final StatusStepperRenderer statusHitTester = new StatusStepperRenderer();
   private Runnable onDataChanged;
 
   public HousekeepingGUI(HousekeepingController controller) {
@@ -51,7 +57,10 @@ public class HousekeepingGUI extends JPanel {
     };
     roomTable = new JTable(roomTableModel);
     UiTheme.styleTable(roomTable);
+    roomTable.setRowHeight(34);
     styleStatusColumn(roomTable);
+    roomTable.getColumnModel().getColumn(2).setPreferredWidth(220);
+    roomTable.getColumnModel().getColumn(2).setMinWidth(180);
 
     infoArea = new JTextArea();
     UiTheme.styleInfoArea(infoArea);
@@ -80,12 +89,11 @@ public class HousekeepingGUI extends JPanel {
   }
 
   private void initComponents() {
-    JButton btnUpdate = UiTheme.primaryButton("Update Status");
     JButton btnUndo = UiTheme.secondaryButton("Undo Last Action");
     JButton btnRedo = UiTheme.secondaryButton("Redo Last Action");
     JButton btnDetails = UiTheme.accentButton("View Details");
     JButton btnRefresh = UiTheme.secondaryButton("Refresh Rooms");
-    add(UiTheme.buttonRow(btnUpdate, btnUndo, btnRedo, btnDetails, btnRefresh), BorderLayout.NORTH);
+    add(UiTheme.buttonRow(btnUndo, btnRedo, btnDetails, btnRefresh), BorderLayout.NORTH);
 
     JScrollPane tableScroll = new JScrollPane(roomTable);
     tableScroll.setPreferredSize(new Dimension(720, 420));
@@ -97,7 +105,6 @@ public class HousekeepingGUI extends JPanel {
     UiTheme.styleListScroll(infoScroll);
     add(UiTheme.titledPanel("Room details / Task log", infoScroll), BorderLayout.SOUTH);
 
-    btnUpdate.addActionListener(e -> showUpdateDialog());
     btnUndo.addActionListener(e -> {
       if (!confirmAction("Undo the last housekeeping action?", "Confirm Undo")) {
         return;
@@ -124,14 +131,75 @@ public class HousekeepingGUI extends JPanel {
         showSelectedDetails();
       }
     });
-    roomTable.addMouseListener(new MouseAdapter() {
+    MouseAdapter statusArrowMouse = new MouseAdapter() {
       @Override
-      public void mouseClicked(MouseEvent e) {
-        if (e.getClickCount() == 2) {
-          showUpdateDialog();
+      public void mousePressed(MouseEvent e) {
+        if (e.getButton() != MouseEvent.BUTTON1) {
+          return;
+        }
+        int row = roomTable.rowAtPoint(e.getPoint());
+        String hit = hitStatusArrow(e);
+        if (row < 0 || hit == null) {
+          return;
+        }
+        roomTable.setRowSelectionInterval(row, row);
+        applyStatusStep("next".equals(hit));
+      }
+
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        String hit = hitStatusArrow(e);
+        if ("prev".equals(hit) || "next".equals(hit)) {
+          roomTable.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        } else {
+          roomTable.setCursor(Cursor.getDefaultCursor());
         }
       }
-    });
+
+      @Override
+      public void mouseExited(MouseEvent e) {
+        roomTable.setCursor(Cursor.getDefaultCursor());
+      }
+    };
+    roomTable.addMouseListener(statusArrowMouse);
+    roomTable.addMouseMotionListener(statusArrowMouse);
+  }
+
+  /** Returns "prev" or "next" only when the pointer is on an arrow label. */
+  private String hitStatusArrow(MouseEvent e) {
+    int row = roomTable.rowAtPoint(e.getPoint());
+    int col = roomTable.columnAtPoint(e.getPoint());
+    if (row < 0 || col != 2) {
+      return null;
+    }
+    Rectangle cell = roomTable.getCellRect(row, col, false);
+    Object value = roomTable.getValueAt(row, col);
+    statusHitTester.getTableCellRendererComponent(roomTable, value, false, false, row, col);
+    statusHitTester.setBounds(0, 0, cell.width, cell.height);
+    statusHitTester.doLayout();
+    Component inner = statusHitTester.getComponentAt(e.getX() - cell.x, e.getY() - cell.y);
+    if (inner == null) {
+      return null;
+    }
+    String name = inner.getName();
+    if ("prev".equals(name) || "next".equals(name)) {
+      return name;
+    }
+    return null;
+  }
+
+  private void applyStatusStep(boolean forward) {
+    String roomId = selectedRoomId();
+    if (roomId == null) {
+      infoArea.setText("Select a room, then click ◀ or ▶ on its status.");
+      return;
+    }
+    String result = forward
+        ? controller.stepStatusForward(roomId)
+        : controller.stepStatusBack(roomId);
+    refresh();
+    notifyDataChanged();
+    infoArea.setText(result);
   }
 
   private boolean confirmAction(String message, String title) {
@@ -176,40 +244,6 @@ public class HousekeepingGUI extends JPanel {
           .append('\n');
     }
     infoArea.setText(sb.toString());
-  }
-
-  private void showUpdateDialog() {
-    String roomId = selectedRoomId();
-    if (roomId == null) {
-      JOptionPane.showMessageDialog(this, "Select a room to update.");
-      return;
-    }
-
-    JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-    panel.setBackground(UiTheme.SURFACE);
-    JComboBox<HousekeepingStatus> combo = new JComboBox<>(HousekeepingStatus.values());
-    panel.add(UiTheme.bodyLabel("Select new status:"));
-    panel.add(combo);
-    JTextField staffField = new JTextField();
-    UiTheme.styleTextField(staffField);
-    panel.add(UiTheme.bodyLabel("Staff name:"));
-    panel.add(staffField);
-    JTextField noteField = new JTextField();
-    UiTheme.styleTextField(noteField);
-    panel.add(UiTheme.bodyLabel("Note:"));
-    panel.add(noteField);
-
-    int result = JOptionPane.showConfirmDialog(this, panel, "Update Room " + roomId,
-        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-    if (result == JOptionPane.OK_OPTION) {
-      HousekeepingStatus newStatus = (HousekeepingStatus) combo.getSelectedItem();
-      String staff = staffField.getText().trim();
-      String note = noteField.getText().trim();
-      String res = controller.updateRoomStatus(roomId, newStatus, staff, note);
-      JOptionPane.showMessageDialog(this, res);
-      refresh();
-      notifyDataChanged();
-    }
   }
 
   private void refreshRooms() {
@@ -266,9 +300,9 @@ public class HousekeepingGUI extends JPanel {
         + "Dirty       : " + dirty + "\n"
         + "Cleaning    : " + cleaning + "\n"
         + "Inspected   : " + inspected + "\n"
-        + "Ready       : " + ready + "\n"
+        + "Clean       : " + ready + "\n"
         + "Occupied    : " + occupied + "\n\n"
-        + "Select a room to view its task log. Double-click a row to update status.";
+        + "Click ◀ or ▶ on a room's status to change it immediately.";
   }
 
   private String selectedRoomId() {
@@ -295,24 +329,75 @@ public class HousekeepingGUI extends JPanel {
       public Component getTableCellRendererComponent(
           JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
         Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
-        if (isSelected) {
-          c.setBackground(UiTheme.SELECTION);
-          c.setForeground(UiTheme.TEXT);
-          return c;
-        }
-        String status = row < tbl.getRowCount() ? String.valueOf(tbl.getValueAt(row, 2)) : "";
-        if ("Ready For Check-In".equals(status)) {
-          c.setBackground(new Color(0xEC, 0xF8, 0xF3));
-          c.setForeground(column == 2 ? UiTheme.SUCCESS : UiTheme.TEXT);
-        } else if ("Dirty".equals(status)) {
-          c.setBackground(new Color(0xFE, 0xF3, 0xC7));
-          c.setForeground(column == 2 ? UiTheme.WARN : UiTheme.TEXT);
-        } else {
-          c.setBackground(row % 2 == 0 ? UiTheme.PANEL : UiTheme.TABLE_ALT);
-          c.setForeground(UiTheme.TEXT);
-        }
+        applyStatusRowColors(c, tbl, row, isSelected, false);
         return c;
       }
     });
+    table.getColumnModel().getColumn(2).setCellRenderer(new StatusStepperRenderer());
+  }
+
+  private static void applyStatusRowColors(
+      Component c, JTable tbl, int row, boolean isSelected, boolean statusColumn) {
+    if (isSelected) {
+      c.setBackground(UiTheme.SELECTION);
+      c.setForeground(UiTheme.TEXT);
+      return;
+    }
+    String status = row < tbl.getRowCount() ? String.valueOf(tbl.getValueAt(row, 2)) : "";
+    if ("Clean".equals(status) || "Ready For Check-In".equals(status)) {
+      c.setBackground(new Color(0xEC, 0xF8, 0xF3));
+      c.setForeground(statusColumn ? UiTheme.SUCCESS : UiTheme.TEXT);
+    } else if ("Dirty".equals(status)) {
+      c.setBackground(new Color(0xFE, 0xF3, 0xC7));
+      c.setForeground(statusColumn ? UiTheme.WARN : UiTheme.TEXT);
+    } else {
+      c.setBackground(row % 2 == 0 ? UiTheme.PANEL : UiTheme.TABLE_ALT);
+      c.setForeground(UiTheme.TEXT);
+    }
+  }
+
+  private static final class StatusStepperRenderer extends JPanel implements TableCellRenderer {
+    private final JLabel prev = new JLabel("◀");
+    private final JLabel status = new JLabel();
+    private final JLabel next = new JLabel("▶");
+
+    private StatusStepperRenderer() {
+      setLayout(new GridBagLayout());
+      setOpaque(true);
+      Font arrowFont = UiTheme.FONT_TITLE.deriveFont(Font.BOLD, 14f);
+      prev.setName("prev");
+      next.setName("next");
+      status.setName("status");
+      prev.setFont(arrowFont);
+      next.setFont(arrowFont);
+      status.setFont(UiTheme.FONT_BODY);
+      prev.setBorder(new EmptyBorder(4, 10, 4, 10));
+      next.setBorder(new EmptyBorder(4, 10, 4, 10));
+      status.setBorder(new EmptyBorder(4, 8, 4, 8));
+      add(prev, new java.awt.GridBagConstraints(
+          0, 0, 1, 1, 0, 0, java.awt.GridBagConstraints.CENTER,
+          java.awt.GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+      add(status, new java.awt.GridBagConstraints(
+          1, 0, 1, 1, 0, 0, java.awt.GridBagConstraints.CENTER,
+          java.awt.GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+      add(next, new java.awt.GridBagConstraints(
+          2, 0, 1, 1, 0, 0, java.awt.GridBagConstraints.CENTER,
+          java.awt.GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+    }
+
+    @Override
+    public Component getTableCellRendererComponent(
+        JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      status.setText(value == null ? "" : String.valueOf(value));
+      applyStatusRowColors(this, tbl, row, isSelected, true);
+      Color fg = isSelected ? UiTheme.TEXT : getForeground();
+      prev.setForeground(fg);
+      next.setForeground(fg);
+      status.setForeground(fg);
+      prev.setOpaque(false);
+      next.setOpaque(false);
+      status.setOpaque(false);
+      return this;
+    }
   }
 }

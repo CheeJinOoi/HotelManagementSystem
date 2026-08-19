@@ -165,7 +165,7 @@ public class VIPConsoleUI {
         ConsoleStyle.prompt("Allocate room to highest priority VIP? (y/n): ");
         String confirm = scanner.nextLine().trim().toLowerCase();
         if (confirm.equals("y") || confirm.equals("yes")) {
-            control.allocateRoom();
+            ConsoleStyle.info(control.allocateRoom());
         } else {
             ConsoleStyle.info("Allocation cancelled.");
         }

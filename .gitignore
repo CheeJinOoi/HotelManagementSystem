@@ -1,4 +1,8 @@
 # Generated folders - safe to delete; recreated by run.bat / run.ps1
 bin/
-data/
 *.class
+
+# Runtime folder, except the demo snapshot files checked into git
+data/*
+!data/housekeeping_state.txt
+!data/reservations.dat

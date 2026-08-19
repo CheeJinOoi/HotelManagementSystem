@@ -132,6 +132,11 @@ public class WalkInBookingUI {
     return inputNonEmpty("Enter 8-digit confirmation number: ");
   }
 
+  public String inputCheckoutKey() {
+    ConsoleStyle.clear();
+    return inputNonEmpty("Enter confirmation number or room ID: ");
+  }
+
   public void listPendingReservations(String outputStr) {
     ConsoleStyle.clear();
     ConsoleStyle.section("Pending queue (front = next to assign)");

@@ -42,7 +42,8 @@ if (-not (Test-Path $java)) {
 
 New-Item -ItemType Directory -Force -Path bin, data | Out-Null
 
-$files = Get-ChildItem -Path "src" -Recurse -Filter "*.java" -ErrorAction SilentlyContinue
+$files = Get-ChildItem -Path "src" -Recurse -Filter "*.java" -ErrorAction SilentlyContinue |
+  Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' }
 if ($files.Count -eq 0) {
   Write-Host "No Java source files found in src/."
   Read-Host "Press Enter to close"

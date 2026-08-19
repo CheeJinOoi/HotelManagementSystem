@@ -37,6 +37,7 @@ public class HotelGUI extends JFrame {
         this.housekeepingPanel = new HousekeepingGUI(housekeeping);
         this.vipPanel = new VIPRoomAllocationGUI(vipControl);
         this.frontDeskPanel = new FrontDeskGUI(frontDesk);
+        this.walkInPanel.setVipControl(vipControl);
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(1280, 800);
