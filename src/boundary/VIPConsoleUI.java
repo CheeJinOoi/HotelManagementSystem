@@ -84,7 +84,7 @@ public class VIPConsoleUI {
         ConsoleStyle.menuItem(3, "View VIP Waiting Queue");
         ConsoleStyle.menuItem(4, "View Room Status");
         ConsoleStyle.menuItem(5, "Release Room");
-        ConsoleStyle.menuItem(6, "Search VIP by ID");
+        ConsoleStyle.menuItem(6, "Search VIP by Phone");
         ConsoleStyle.menuItem(7, "Generate VIP Queue Report");
         ConsoleStyle.menuItem(8, "Generate Allocation Report");
         ConsoleStyle.menuExit(0, "Return to hotel menu");
@@ -100,11 +100,8 @@ public class VIPConsoleUI {
         ConsoleStyle.prompt("Enter IC/Passport: ");
         String ic = scanner.nextLine().trim();
 
-        ConsoleStyle.prompt("Enter phone: ");
+        ConsoleStyle.prompt("Enter phone number: ");
         String phone = scanner.nextLine().trim();
-
-        ConsoleStyle.prompt("Enter membership ID (e.g., VIP001): ");
-        String membershipId = scanner.nextLine().trim();
 
         ConsoleStyle.info("Select tier:");
         VIPGuest.MembershipTier[] tiers = VIPGuest.MembershipTier.values();
@@ -125,20 +122,38 @@ public class VIPConsoleUI {
         }
         VIPGuest.MembershipTier tier = tiers[tierChoice];
 
-        ConsoleStyle.prompt("Enter loyalty points: ");
-        int points = 0;
-        try {
-            points = Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            ConsoleStyle.warn("Invalid number. Setting points to 0.");
+        ConsoleStyle.info("Select preferred room type:");
+        ConsoleStyle.menuItem(1, "Standard");
+        ConsoleStyle.menuItem(2, "Deluxe");
+        ConsoleStyle.menuItem(3, "Suite");
+        ConsoleStyle.menuItem(4, "Executive");
+        ConsoleStyle.prompt("Enter choice (1-4): ");
+        String roomChoice = scanner.nextLine().trim();
+        String preferredRoom = "Standard";
+        switch (roomChoice) {
+            case "1":
+                preferredRoom = "Standard";
+                break;
+            case "2":
+                preferredRoom = "Deluxe";
+                break;
+            case "3":
+                preferredRoom = "Suite";
+                break;
+            case "4":
+                preferredRoom = "Executive";
+                break;
+            default:
+                ConsoleStyle.warn("Invalid choice. Defaulting to Standard.");
+                preferredRoom = "Standard";
+                break;
         }
 
-        ConsoleStyle.prompt("Enter email: ");
-        String email = scanner.nextLine().trim();
-
-        VIPGuest guest = new VIPGuest(name, ic, phone, membershipId, tier, points, email);
+        VIPGuest guest = new VIPGuest(name, ic, phone, tier, preferredRoom);
         control.addVIPGuest(guest);
         ConsoleStyle.success("VIP guest added successfully.");
+        ConsoleStyle.keyValue("Phone", phone);
+        ConsoleStyle.keyValue("Preferred Room", preferredRoom);
     }
 
     private void allocateRoom() {
@@ -175,25 +190,26 @@ public class VIPConsoleUI {
     }
 
     private void searchVIP() {
-        ConsoleStyle.prompt("Enter membership ID to search: ");
-        String id = scanner.nextLine().trim();
-        if (id.isEmpty()) {
-            ConsoleStyle.error("Membership ID cannot be empty.");
+        ConsoleStyle.prompt("Enter phone number to search: ");
+        String phone = scanner.nextLine().trim();
+        if (phone.isEmpty()) {
+            ConsoleStyle.error("Phone number cannot be empty.");
             return;
         }
 
-        VIPGuest guest = control.searchByMembershipId(id);
+        VIPGuest guest = control.searchByPhone(phone);
         if (guest != null) {
             ConsoleStyle.section("VIP guest found");
             ConsoleStyle.keyValue("Name", guest.getName());
             ConsoleStyle.keyValue("IC/Passport", guest.getIdentityNumber());
             ConsoleStyle.keyValue("Phone", guest.getPhone());
-            ConsoleStyle.keyValue("Membership", guest.getMembershipId());
             ConsoleStyle.keyValue("Tier", guest.getTier().getDisplay());
-            ConsoleStyle.keyValue("Points", String.valueOf(guest.getLoyaltyPoints()));
-            ConsoleStyle.keyValue("Email", guest.getEmail());
+            ConsoleStyle.keyValue("Preferred Room", guest.getPreferredRoomType());
+            String confirm = guest.getConfirmationNumber() != null ?
+                guest.getConfirmationNumber() : "Not assigned yet";
+            ConsoleStyle.keyValue("Confirmation #", confirm);
         } else {
-            ConsoleStyle.error("VIP not found with ID: " + id);
+            ConsoleStyle.error("VIP not found with phone: " + phone);
         }
     }
 }

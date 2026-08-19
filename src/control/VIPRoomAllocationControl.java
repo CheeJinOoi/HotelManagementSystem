@@ -19,7 +19,8 @@ public class VIPRoomAllocationControl {
     private String[] bookingHistory;
     private int bookingCount;
 
-    private int bookingCounter = 10000000;
+    // ✅ Confirmation starts from 50000001
+    private int bookingCounter = 50000000;
 
     public VIPRoomAllocationControl() {
         queue = new HeapPriorityQueue<>();
@@ -74,12 +75,40 @@ public class VIPRoomAllocationControl {
         allVIPGuests[guestCount++] = guest;
         queue.enqueue(guest);
         System.out.println("✅ VIP Added: " + guest);
+
+        // ✅ Auto-assign if room available
+        tryAutoAllocate();
     }
 
     public void addVIPGuest(String name, String identityNumber, String phone,
-                            String membershipId, VIPGuest.MembershipTier tier) {
-        VIPGuest guest = new VIPGuest(name, identityNumber, phone, membershipId, tier);
+                            VIPGuest.MembershipTier tier, String preferredRoomType) {
+        VIPGuest guest = new VIPGuest(name, identityNumber, phone, tier, preferredRoomType);
         addVIPGuest(guest);
+    }
+
+    // ===== Try Auto-Allocate =====
+    private void tryAutoAllocate() {
+        if (!queue.isEmpty()) {
+            VIPGuest guest = queue.peek();
+            String preferredType = guest.getPreferredRoomType();
+
+            // First: try preferred room type
+            for (int i = 0; i < roomCount; i++) {
+                if (rooms[i].getRoomType().equalsIgnoreCase(preferredType) &&
+                    rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
+                    allocateRoom();
+                    return;
+                }
+            }
+
+            // Second: try any room
+            for (int i = 0; i < roomCount; i++) {
+                if (rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
+                    allocateRoom();
+                    return;
+                }
+            }
+        }
     }
 
     // ===== Allocate Room =====
@@ -90,19 +119,35 @@ public class VIPRoomAllocationControl {
         }
 
         Room availableRoom = null;
+        VIPGuest guest = queue.peek();
+        String preferredType = guest.getPreferredRoomType();
+
+        // First: try preferred room type
         for (int i = 0; i < roomCount; i++) {
-            if (rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
+            if (rooms[i].getRoomType().equalsIgnoreCase(preferredType) &&
+                rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
                 availableRoom = rooms[i];
                 break;
             }
         }
 
+        // Second: any available room
         if (availableRoom == null) {
-            System.out.println("⚠️ No rooms available.");
+            for (int i = 0; i < roomCount; i++) {
+                if (rooms[i].isReadyForAssignment() && !rooms[i].isOccupied()) {
+                    availableRoom = rooms[i];
+                    break;
+                }
+            }
+        }
+
+        if (availableRoom == null) {
+            System.out.println("⚠️ No rooms available for " + guest.getName() +
+                               " (preferred: " + preferredType + ")");
             return;
         }
 
-        VIPGuest guest = queue.dequeue();
+        guest = queue.dequeue();
         bookingCounter++;
         String confirmationNumber = String.format("%08d", bookingCounter);
         guest.setConfirmationNumber(confirmationNumber);
@@ -122,31 +167,27 @@ public class VIPRoomAllocationControl {
                 " to " + guest.getName() + " (Conf: " + confirmationNumber + ")");
     }
 
-    // ===== Release Room (FIXED: Uses vacateAfterCheckout) =====
+    // ===== Release Room =====
     public void releaseRoom(String roomId) {
         for (int i = 0; i < roomCount; i++) {
             if (rooms[i].getRoomId().equals(roomId) && rooms[i].isOccupied()) {
                 String confNumber = rooms[i].getAssignedConfirmationNumber();
 
-                // ✅ 关键修复：使用 vacateAfterCheckout()
-                // 这会自动：clearOccupancy() + 设置状态为 DIRTY
                 rooms[i].vacateAfterCheckout();
 
-                // 从 VIP 系统中移除客人
+                // Remove VIP guest from system
                 for (int j = 0; j < guestCount; j++) {
                     if (allVIPGuests[j].getConfirmationNumber() != null &&
                         allVIPGuests[j].getConfirmationNumber().equals(confNumber)) {
 
                         String removedName = allVIPGuests[j].getName();
 
-                        // 移除客人
                         for (int k = j; k < guestCount - 1; k++) {
                             allVIPGuests[k] = allVIPGuests[k + 1];
                         }
                         allVIPGuests[guestCount - 1] = null;
                         guestCount--;
 
-                        // 缩小数组
                         if (guestCount > 0 && guestCount < allVIPGuests.length / 2) {
                             VIPGuest[] newArray = new VIPGuest[allVIPGuests.length / 2 + 1];
                             System.arraycopy(allVIPGuests, 0, newArray, 0, guestCount);
@@ -160,9 +201,10 @@ public class VIPRoomAllocationControl {
 
                 System.out.println("🔓 Room " + roomId + " released and set to DIRTY.");
 
+                // ✅ Auto-allocate next VIP
                 if (!queue.isEmpty()) {
                     System.out.println("🔄 Auto-allocating next VIP...");
-                    allocateRoom();
+                    tryAutoAllocate();
                 }
                 return;
             }
@@ -178,8 +220,8 @@ public class VIPRoomAllocationControl {
         }
 
         System.out.println("\n=== VIP Waiting Queue ===");
-        System.out.printf("%-5s %-15s %-12s %-10s %-8s%n", "#", "Name", "ID", "Tier", "Points");
-        System.out.println("-".repeat(60));
+        System.out.printf("%-5s %-15s %-12s %-15s %-15s%n", "#", "Name", "Tier", "Phone", "Preferred Room");
+        System.out.println("-".repeat(65));
 
         VIPGuest[] temp = new VIPGuest[queue.size()];
         int tempCount = 0;
@@ -192,11 +234,14 @@ public class VIPRoomAllocationControl {
 
         for (int i = 0; i < tempCount; i++) {
             VIPGuest g = temp[i];
-            System.out.printf("%-5d %-15s %-12s %-10s %-8d%n",
-                (i + 1), g.getName(), g.getMembershipId(),
-                g.getTier().getDisplay(), g.getLoyaltyPoints());
+            System.out.printf("%-5d %-15s %-12s %-15s %-15s%n",
+                (i + 1),
+                g.getName(),
+                g.getTier().getDisplay(),
+                g.getPhone(),
+                g.getPreferredRoomType());
         }
-        System.out.println("-".repeat(60));
+        System.out.println("-".repeat(65));
         System.out.println("Total: " + tempCount + " VIP guests waiting");
     }
 
@@ -246,13 +291,28 @@ public class VIPRoomAllocationControl {
         return null;
     }
 
-    // ===== Search VIP =====
-    public VIPGuest searchByMembershipId(String membershipId) {
-        if (membershipId == null || membershipId.trim().isEmpty()) {
+    // ===== Search VIP by Phone Number =====
+    public VIPGuest searchByPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
             return null;
         }
         for (int i = 0; i < guestCount; i++) {
-            if (allVIPGuests[i].getMembershipId().equalsIgnoreCase(membershipId.trim())) {
+            if (allVIPGuests[i].getPhone() != null &&
+                allVIPGuests[i].getPhone().equals(phone.trim())) {
+                return allVIPGuests[i];
+            }
+        }
+        return null;
+    }
+
+    // ===== Search VIP by Confirmation Number =====
+    public VIPGuest searchByConfirmationNumber(String confirmationNumber) {
+        if (confirmationNumber == null || confirmationNumber.trim().isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < guestCount; i++) {
+            if (allVIPGuests[i].getConfirmationNumber() != null &&
+                allVIPGuests[i].getConfirmationNumber().equals(confirmationNumber.trim())) {
                 return allVIPGuests[i];
             }
         }
@@ -276,18 +336,20 @@ public class VIPRoomAllocationControl {
 
         quickSortByTier(temp, 0, tempCount - 1);
 
-        System.out.printf("%-5s %-15s %-12s %-12s %-10s %-12s%n",
-            "#", "Name", "ID", "Tier", "Points", "Phone");
-        System.out.println("-".repeat(70));
+        System.out.printf("%-5s %-15s %-12s %-15s %-15s%n",
+            "#", "Name", "Tier", "Phone", "Preferred Room");
+        System.out.println("-".repeat(65));
 
         for (int i = 0; i < tempCount; i++) {
             VIPGuest g = temp[i];
-            System.out.printf("%-5d %-15s %-12s %-12s %-10d %-12s%n",
-                (i + 1), g.getName(), g.getMembershipId(),
-                g.getTier().getDisplay(), g.getLoyaltyPoints(),
-                g.getPhone());
+            System.out.printf("%-5d %-15s %-12s %-15s %-15s%n",
+                (i + 1),
+                g.getName(),
+                g.getTier().getDisplay(),
+                g.getPhone(),
+                g.getPreferredRoomType());
         }
-        System.out.println("-".repeat(70));
+        System.out.println("-".repeat(65));
         System.out.println("📊 Total VIP guests waiting: " + tempCount);
 
         int elite = 0, diamond = 0, platinum = 0;
@@ -429,10 +491,10 @@ public class VIPRoomAllocationControl {
         return result;
     }
 
-    public void viewVIPDetails(String membershipId) {
-        VIPGuest guest = searchByMembershipId(membershipId);
+    public void viewVIPDetails(String phone) {
+        VIPGuest guest = searchByPhone(phone);
         if (guest == null) {
-            System.out.println("❌ VIP Guest not found with ID: " + membershipId);
+            System.out.println("❌ VIP Guest not found with phone: " + phone);
             return;
         }
 
@@ -443,17 +505,13 @@ public class VIPRoomAllocationControl {
         System.out.printf("║ %-16s: %-20s ║\n", "IC/Passport", guest.getIdentityNumber());
         System.out.printf("║ %-16s: %-20s ║\n", "Phone", guest.getPhone());
         System.out.println("╠──────────────────────────────────────────────╣");
-        System.out.printf("║ %-16s: %-20s ║\n", "Membership ID", guest.getMembershipId());
         System.out.printf("║ %-16s: %-20s ║\n", "Tier", guest.getTier().getDisplay());
-        System.out.printf("║ %-16s: %-20d ║\n", "Points", guest.getLoyaltyPoints());
         System.out.println("╠──────────────────────────────────────────────╣");
         String roomInfo = guest.getAssignedRoom() != null ?
             guest.getAssignedRoom().getRoomId() + " (" + guest.getAssignedRoom().getRoomType() + ")" :
             "Not assigned";
         System.out.printf("║ %-16s: %-20s ║\n", "Assigned Room", roomInfo);
-        String preferred = guest.getPreferredRoomType() != null ?
-            guest.getPreferredRoomType() : "Standard";
-        System.out.printf("║ %-16s: %-20s ║\n", "Preferred Room", preferred);
+        System.out.printf("║ %-16s: %-20s ║\n", "Preferred Room", guest.getPreferredRoomType());
         String confirm = guest.getConfirmationNumber() != null ?
             guest.getConfirmationNumber() : "Not generated";
         System.out.printf("║ %-16s: %-20s ║\n", "Confirmation #", confirm);

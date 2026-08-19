@@ -31,8 +31,9 @@ public class VIPRoomAllocationGUI extends JPanel {
         UiTheme.styleRoot(this);
         setLayout(new BorderLayout(12, 12));
 
+        // ✅ Updated: Removed Membership ID and Points, added Phone and Preferred Room
         queueTableModel = new DefaultTableModel(
-            new String[]{"#", "Name", "Membership ID", "Tier", "Points"}, 0
+            new String[]{"#", "Name", "Tier", "Phone", "Preferred Room"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -93,7 +94,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         add(tablesPanel, BorderLayout.CENTER);
 
         JScrollPane queueScroll = new JScrollPane(queueTable);
-        queueScroll.setPreferredSize(new Dimension(400, 420));
+        queueScroll.setPreferredSize(new Dimension(450, 420));
         UiTheme.styleListScroll(queueScroll);
         tablesPanel.add(UiTheme.titledPanel("VIP Waiting Queue", queueScroll), BorderLayout.WEST);
 
@@ -116,6 +117,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         btnRefresh.addActionListener(e -> refresh());
     }
 
+    // ✅ Updated: Removed Membership ID and Points
     private void refreshQueueTable() {
         queueTableModel.setRowCount(0);
         VIPGuest[] guests = control.getAllVIPGuests();
@@ -133,9 +135,9 @@ public class VIPRoomAllocationGUI extends JPanel {
                 queueTableModel.addRow(new Object[]{
                     rank++,
                     guest.getName(),
-                    guest.getMembershipId(),
                     guest.getTier().getDisplay(),
-                    guest.getLoyaltyPoints()
+                    guest.getPhone(),
+                    guest.getPreferredRoomType()
                 });
             }
         }
@@ -182,21 +184,19 @@ public class VIPRoomAllocationGUI extends JPanel {
         }
     }
 
+    // ✅ Updated: Removed Membership ID, Points, Email; added Preferred Room Type
     private void showAddVIPDialog() {
         JTextField nameField = new JTextField();
         JTextField icField = new JTextField();
         JTextField phoneField = new JTextField();
-        JTextField membershipField = new JTextField();
         JComboBox<VIPGuest.MembershipTier> tierCombo =
             new JComboBox<>(VIPGuest.MembershipTier.values());
-        JTextField pointsField = new JTextField("0");
-        JTextField emailField = new JTextField();
+        JComboBox<String> preferredRoomCombo =
+            new JComboBox<>(new String[]{"Standard", "Deluxe", "Suite", "Executive"});
+
         UiTheme.styleTextField(nameField);
         UiTheme.styleTextField(icField);
         UiTheme.styleTextField(phoneField);
-        UiTheme.styleTextField(membershipField);
-        UiTheme.styleTextField(pointsField);
-        UiTheme.styleTextField(emailField);
 
         JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
         panel.setBackground(UiTheme.SURFACE);
@@ -206,14 +206,10 @@ public class VIPRoomAllocationGUI extends JPanel {
         panel.add(icField);
         panel.add(UiTheme.bodyLabel("Phone:"));
         panel.add(phoneField);
-        panel.add(UiTheme.bodyLabel("Membership ID (e.g., VIP001):"));
-        panel.add(membershipField);
         panel.add(UiTheme.bodyLabel("Tier:"));
         panel.add(tierCombo);
-        panel.add(UiTheme.bodyLabel("Loyalty Points:"));
-        panel.add(pointsField);
-        panel.add(UiTheme.bodyLabel("Email:"));
-        panel.add(emailField);
+        panel.add(UiTheme.bodyLabel("Preferred Room Type:"));
+        panel.add(preferredRoomCombo);
 
         int result = JOptionPane.showConfirmDialog(
             this, panel, "Add VIP Guest",
@@ -224,24 +220,17 @@ public class VIPRoomAllocationGUI extends JPanel {
             String name = nameField.getText().trim();
             String ic = icField.getText().trim();
             String phone = phoneField.getText().trim();
-            String membershipId = membershipField.getText().trim();
             VIPGuest.MembershipTier tier = (VIPGuest.MembershipTier) tierCombo.getSelectedItem();
-            int points;
-            try {
-                points = Integer.parseInt(pointsField.getText().trim());
-            } catch (NumberFormatException e) {
-                points = 0;
-            }
-            String email = emailField.getText().trim();
+            String preferredRoom = (String) preferredRoomCombo.getSelectedItem();
 
-            if (name.isEmpty() || membershipId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Name and Membership ID are required!");
+            if (name.isEmpty() || phone.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Name and Phone are required!");
                 return;
             }
 
-            VIPGuest guest = new VIPGuest(name, ic, phone, membershipId, tier, points, email);
+            VIPGuest guest = new VIPGuest(name, ic, phone, tier, preferredRoom);
             control.addVIPGuest(guest);
-            infoArea.setText("VIP added: " + guest);
+            infoArea.setText("VIP added: " + guest.getName() + " (" + tier.getDisplay() + ")");
             refresh();
             notifyDataChanged();
         }
@@ -289,26 +278,28 @@ public class VIPRoomAllocationGUI extends JPanel {
         }
     }
 
+    // ✅ Updated: Search by Phone instead of Membership ID
     private void searchVIP() {
-        String id = JOptionPane.showInputDialog(this, "Enter Membership ID to search:");
-        if (id == null || id.trim().isEmpty()) {
+        String phone = JOptionPane.showInputDialog(this, "Enter Phone number to search:");
+        if (phone == null || phone.trim().isEmpty()) {
             return;
         }
 
-        VIPGuest guest = control.searchByMembershipId(id.trim());
+        VIPGuest guest = control.searchByPhone(phone.trim());
         if (guest != null) {
+            String confirm = guest.getConfirmationNumber() != null ?
+                guest.getConfirmationNumber() : "Not assigned yet";
             infoArea.setText(
                 "VIP Found:\n" +
                 "   Name        : " + guest.getName() + "\n" +
                 "   IC/Passport : " + guest.getIdentityNumber() + "\n" +
                 "   Phone       : " + guest.getPhone() + "\n" +
-                "   Membership  : " + guest.getMembershipId() + "\n" +
                 "   Tier        : " + guest.getTier().getDisplay() + "\n" +
-                "   Points      : " + guest.getLoyaltyPoints() + "\n" +
-                "   Email       : " + guest.getEmail()
+                "   Preferred   : " + guest.getPreferredRoomType() + "\n" +
+                "   Confirmation: " + confirm
             );
         } else {
-            infoArea.setText("VIP not found with ID: " + id);
+            infoArea.setText("VIP not found with phone: " + phone);
         }
     }
 
