@@ -4,7 +4,13 @@ import entity.Guest;
 import entity.Reservation;
 import entity.ReservationStatus;
 
-
+/**
+ * FrontDeskReports.java
+ *
+ * REPORT class for Front Desk module.
+ *
+ * @author Tan Jun Ren
+ */
 public class FrontDeskReports {
 
     private FrontDeskController controller;

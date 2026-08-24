@@ -1,40 +1,45 @@
+
 package control;
 
 import entity.Reservation;
 import entity.ReservationStatus;
 import entity.Room;
-import hashing.DictionaryInterface;
 import hashing.HashedDictionary;
 
-
+/**
+ * FrontDeskController.java
+ *
+ * CONTROL class for Front Desk operations.
+ *
+ * Responsibilities:
+ * - Search reservation using confirmation number
+ * - Check room availability
+ * - Check billing information
+ * - Check out guest
+ * - Generate front desk reports
+ *
+ * @author Tan Jun Ren
+ */
 public class FrontDeskController {
-
 
     private WalkInBookingControl walkIn;
 
  
-    private DictionaryInterface<String, Reservation> reservationHash;
+    private HashedDictionary<String, Reservation> reservationHash;
 
-  
-    private HousekeepingController housekeeping;
-
-    public FrontDeskController(
-            WalkInBookingControl walkIn) {
+ 
+    public FrontDeskController(WalkInBookingControl walkIn) {
 
         this.walkIn = walkIn;
-
-        this.housekeeping =
-                walkIn.getHousekeepingController();
 
         reservationHash =
                 new HashedDictionary<String, Reservation>();
 
-        buildReservationHash();
+        loadReservations();
     }
 
-    public final void buildReservationHash() {
 
-        reservationHash.clear();
+    private void loadReservations() {
 
         Reservation[] reservations =
                 walkIn.getAllReservations();
@@ -50,22 +55,29 @@ public class FrontDeskController {
             Reservation reservation =
                     reservations[i];
 
-            if (reservation == null) {
-                continue;
+            if (reservation != null) {
+
+                String confirmation =
+                        reservation.getConfirmationNumber();
+
+                if (confirmation != null) {
+
+                    reservationHash.add(
+                            confirmation,
+                            reservation);
+                }
             }
-
-            String confirmation =
-                    reservation.getConfirmationNumber();
-
-            if (confirmation == null) {
-                continue;
-            }
-
-            reservationHash.add(
-                    confirmation,
-                    reservation);
         }
     }
+
+
+    public void refreshReservations() {
+
+        reservationHash.clear();
+
+        loadReservations();
+    }
+
 
     public Reservation findReservation(
             String confirmationNumber) {
@@ -74,26 +86,19 @@ public class FrontDeskController {
             return null;
         }
 
-        String key =
+        confirmationNumber =
                 confirmationNumber.trim();
 
-        if (!isValidConfirmationNumber(key)) {
+        if (confirmationNumber.isEmpty()) {
             return null;
         }
 
-      
-        return reservationHash.getValue(key);
-    }
-
-
-
-    public Reservation searchGuest(
-            String confirmationNumber) {
-
-        return findReservation(
+        /*
+         * Fast O(1) average search.
+         */
+        return reservationHash.getValue(
                 confirmationNumber);
     }
-
 
 
     public String formatReservationDetails(
@@ -108,203 +113,157 @@ public class FrontDeskController {
                 new StringBuilder();
 
         output.append(
-                "\n========================================================\n");
+                "\n========================================\n");
 
         output.append(
-                "                 GUEST INFORMATION\n");
+                "       GUEST / RESERVATION DETAILS\n");
 
         output.append(
-                "========================================================\n");
+                "========================================\n");
 
         output.append(
-                "Confirmation Number : ")
-              .append(
-                reservation.getConfirmationNumber())
-              .append("\n");
+                "Confirmation : ")
+                .append(
+                        reservation
+                                .getConfirmationNumber())
+                .append("\n");
+
+        output.append(
+                "Status       : ")
+                .append(
+                        reservation.getStatus())
+                .append("\n");
+
+        output.append(
+                "Booking Type : ")
+                .append(
+                        reservation.getBookingType())
+                .append("\n");
+
+        output.append(
+                "Room Type    : ")
+                .append(
+                        reservation.getRoomType())
+                .append("\n");
+
+        output.append(
+                "Room         : ")
+                .append(
+                        reservation.getAssignedRoomId()
+                                == null
+                        ? "-"
+                        : reservation
+                                .getAssignedRoomId())
+                .append("\n");
+
+        output.append(
+                "Check-in     : ")
+                .append(
+                        reservation.getCheckInDate())
+                .append("\n");
+
+        output.append(
+                "Check-out    : ")
+                .append(
+                        reservation.getCheckOutDate())
+                .append("\n");
 
         if (reservation.getGuest() != null) {
 
             output.append(
-                    "Guest Name           : ")
-                  .append(
-                    reservation.getGuest().getName())
-                  .append("\n");
+                    "Guest Name   : ")
+                    .append(
+                            reservation
+                                    .getGuest()
+                                    .getName())
+                    .append("\n");
 
             output.append(
-                    "IC / Passport        : ")
-                  .append(
-                    reservation.getGuest()
-                               .getIdentityNumber())
-                  .append("\n");
+                    "IC/Passport  : ")
+                    .append(
+                            reservation
+                                    .getGuest()
+                                    .getIdentityNumber())
+                    .append("\n");
 
             output.append(
-                    "Phone                : ")
-                  .append(
-                    reservation.getGuest().getPhone())
-                  .append("\n");
+                    "Phone        : ")
+                    .append(
+                            reservation
+                                    .getGuest()
+                                    .getPhone())
+                    .append("\n");
         }
 
         output.append(
-                "Room Type            : ")
-              .append(
-                reservation.getRoomType())
-              .append("\n");
-
-        output.append(
-                "Room Number          : ")
-              .append(
-                reservation.getAssignedRoomId() == null
-                    ? "-"
-                    : reservation.getAssignedRoomId())
-              .append("\n");
-
-        output.append(
-                "Check-in Date        : ")
-              .append(
-                reservation.getCheckInDate())
-              .append("\n");
-
-        output.append(
-                "Check-out Date       : ")
-              .append(
-                reservation.getCheckOutDate())
-              .append("\n");
-
-        output.append(
-                "Booking Type         : ")
-              .append(
-                reservation.getBookingType())
-              .append("\n");
-
-        output.append(
-                "Reservation Status   : ")
-              .append(
-                reservation.getStatus())
-              .append("\n");
-
-        output.append(
-                "========================================================\n");
+                "========================================\n");
 
         return output.toString();
     }
 
 
-    public Reservation[] getAllReservations() {
+    public String checkOutGuest(
+            String confirmationNumber) {
 
-        return walkIn.getAllReservations();
-    }
+        if (confirmationNumber == null
+                || confirmationNumber.trim().isEmpty()) {
 
-
-    public void refreshReservationHash() {
-
-        buildReservationHash();
-    }
-
-    public void refreshHashTable() {
-        refreshReservationHash();
-    }
-
-    public String searchAvailableRooms(String roomType) {
-        return searchRoomAvailability(roomType);
-    }
-
-    public String checkBill(String confirmationNumber) {
-        return getGuestBill(confirmationNumber);
-    }
-
-    public Room[] getAvailableRooms(String roomType) {
-        if (roomType == null || housekeeping == null) {
-            return new Room[0];
-        }
-        Room[] rooms = housekeeping.getAllRooms();
-        int count = getAvailableRoomCount(roomType);
-        Room[] available = new Room[count];
-        int index = 0;
-        for (int i = 0; i < rooms.length; i++) {
-            if (rooms[i] == null) {
-                continue;
-            }
-            if (roomType.equalsIgnoreCase(rooms[i].getRoomType())
-                    && rooms[i].isReadyForAssignment()) {
-                available[index] = rooms[i];
-                index++;
-            }
-        }
-        return available;
-    }
-
-    public Room[] getAllRooms() {
-        if (housekeeping == null) {
-            return new Room[0];
-        }
-        return housekeeping.getAllRooms();
-    }
-
-
-    public int getAvailableRoomCount(
-            String roomType) {
-
-        if (roomType == null) {
-            return 0;
+            return "Confirmation number is required.";
         }
 
-        Room[] rooms =
-                housekeeping.getAllRooms();
+        confirmationNumber =
+                confirmationNumber.trim();
 
-        int count = 0;
+        Reservation reservation =
+                findReservation(
+                        confirmationNumber);
 
-        for (int i = 0;
-             i < rooms.length;
-             i++) {
+        if (reservation == null) {
 
-            if (rooms[i] == null) {
-                continue;
-            }
+            /*
+             * Refresh in case a new reservation
+             * was created after Front Desk started.
+             */
+            refreshReservations();
 
-            if (roomType.equalsIgnoreCase(
-                    rooms[i].getRoomType())
-                    && rooms[i].isReadyForAssignment()) {
-
-                count++;
-            }
+            reservation =
+                    findReservation(
+                            confirmationNumber);
         }
 
-        return count;
+        if (reservation == null) {
+
+            return "Reservation not found.";
+        }
+
+        if (reservation.getStatus()
+                != ReservationStatus.CHECKED_IN
+                && reservation.getStatus()
+                != ReservationStatus.ASSIGNED) {
+
+            return "Guest cannot check out.\n"
+                    + "Current status: "
+                    + reservation.getStatus();
+        }
+
+        /*
+         * Let WalkInBookingControl perform
+         * the actual checkout operation.
+         */
+        String result =
+                walkIn.checkOutGuest(
+                        confirmationNumber);
+
+        /*
+         * Refresh hash table.
+         */
+        refreshReservations();
+
+        return result;
     }
 
-
-    public int getTotalRoomCount(
-            String roomType) {
-
-        if (roomType == null) {
-            return 0;
-        }
-
-        Room[] rooms =
-                housekeeping.getAllRooms();
-
-        int count = 0;
-
-        for (int i = 0;
-             i < rooms.length;
-             i++) {
-
-            if (rooms[i] == null) {
-                continue;
-            }
-
-            if (roomType.equalsIgnoreCase(
-                    rooms[i].getRoomType())) {
-
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-
-    public String searchRoomAvailability(
+ 
+    public String checkRoomAvailability(
             String roomType) {
 
         if (roomType == null
@@ -313,95 +272,98 @@ public class FrontDeskController {
             return "Room type is required.";
         }
 
-        int total =
-                getTotalRoomCount(roomType);
+        roomType = roomType.trim();
 
-        int available =
-                getAvailableRoomCount(roomType);
+        Room[] rooms =
+                walkIn.getAllRooms();
 
-        int occupied =
-                total - available;
+        if (rooms == null
+                || rooms.length == 0) {
+
+            return "No rooms found.";
+        }
+
+        int total = 0;
+        int available = 0;
+        int occupied = 0;
 
         StringBuilder output =
                 new StringBuilder();
 
         output.append(
-                "\n========================================================\n");
+                "\n========================================\n");
 
         output.append(
-                "              ROOM AVAILABILITY SEARCH\n");
+                "         ROOM AVAILABILITY\n");
 
         output.append(
-                "========================================================\n");
+                "========================================\n");
 
         output.append(
-                "Room Type           : ")
-              .append(roomType)
-              .append("\n");
+                "Room Type: ")
+                .append(roomType)
+                .append("\n\n");
 
-        output.append(
-                "Total Rooms         : ")
-              .append(total)
-              .append("\n");
+        for (int i = 0;
+             i < rooms.length;
+             i++) {
 
-        output.append(
-                "Occupied / Unavailable : ")
-              .append(occupied)
-              .append("\n");
+            Room room = rooms[i];
 
-        output.append(
-                "Available Rooms     : ")
-              .append(available)
-              .append("\n");
-
-        output.append(
-                "--------------------------------------------------------\n");
-
-        if (available > 0) {
-
-            output.append(
-                    "Available Room Numbers:\n");
-
-            Room[] rooms =
-                    housekeeping.getAllRooms();
-
-            for (int i = 0;
-                 i < rooms.length;
-                 i++) {
-
-                if (rooms[i] == null) {
-                    continue;
-                }
-
-                if (roomType.equalsIgnoreCase(
-                        rooms[i].getRoomType())
-                        && rooms[i].isReadyForAssignment()) {
-
-                    output.append(
-                            "- ")
-                          .append(
-                            rooms[i].getRoomId())
-                          .append("\n");
-                }
+            if (room == null) {
+                continue;
             }
 
-            output.append(
-                    "\nRoom is AVAILABLE.\n");
+            if (room.getRoomType()
+                    .equalsIgnoreCase(roomType)) {
 
-        } else {
+                total++;
 
-            output.append(
-                    "Room is NOT AVAILABLE.\n");
+                if (room.isReadyForAssignment()) {
+
+                    available++;
+
+                    output.append(
+                            room.getRoomId())
+                            .append(" - AVAILABLE\n");
+
+                } else {
+
+                    occupied++;
+
+                    output.append(
+                            room.getRoomId())
+                            .append(" - NOT AVAILABLE\n");
+                }
+            }
         }
 
         output.append(
-                "========================================================\n");
+                "\n----------------------------------------\n");
+
+        output.append(
+                "Total Rooms     : ")
+                .append(total)
+                .append("\n");
+
+        output.append(
+                "Available Rooms : ")
+                .append(available)
+                .append("\n");
+
+        output.append(
+                "Not Available   : ")
+                .append(occupied)
+                .append("\n");
+
+        output.append(
+                "========================================\n");
 
         return output.toString();
     }
 
 
-    public String getGuestBill(
+    public String checkBill(
             String confirmationNumber) {
 
         Reservation reservation =
@@ -410,235 +372,230 @@ public class FrontDeskController {
 
         if (reservation == null) {
 
+            refreshReservations();
+
+            reservation =
+                    findReservation(
+                            confirmationNumber);
+        }
+
+        if (reservation == null) {
+
             return "Reservation not found.";
         }
 
-        if (reservation.getGuest() == null) {
-
-            return "Guest information not available.";
-        }
-
-        if (reservation.getCheckInDate() == null
-                || reservation.getCheckOutDate() == null) {
-
-            return "Check-in / Check-out date unavailable.";
-        }
-
-
-        if (reservation.getStatus()
-                != ReservationStatus.CHECKED_IN
-                && reservation.getStatus()
-                != ReservationStatus.CHECKED_OUT) {
-
-            return "Bill cannot be generated yet.\n"
-                    + "Guest status: "
-                    + reservation.getStatus();
-        }
-
-        long nights =
-                java.time.temporal.ChronoUnit.DAYS.between(
-                        reservation.getCheckInDate(),
-                        reservation.getCheckOutDate());
-
-        if (nights < 1) {
-            nights = 1;
-        }
-
-        double pricePerNight =
-                getRoomPrice(
-                        reservation.getRoomType());
-
-        double roomCharge =
-                pricePerNight * nights;
-
-
-        double serviceCharge = 50.00;
-
-        double foodCharge = 80.00;
-
-        double subtotal =
-                roomCharge
-                + serviceCharge
-                + foodCharge;
-
-        double tax =
-                subtotal * 0.06;
-
-        double total =
-                subtotal + tax;
-
-        StringBuilder output =
+        StringBuilder bill =
                 new StringBuilder();
 
-        output.append(
-                "\n========================================================\n");
+        bill.append(
+                "\n========================================\n");
 
-        output.append(
-                "                    GUEST BILL\n");
+        bill.append(
+                "             BILL DETAILS\n");
 
-        output.append(
-                "========================================================\n");
+        bill.append(
+                "========================================\n");
 
-        output.append(
-                "Guest Name       : ")
-              .append(
-                reservation.getGuest().getName())
-              .append("\n");
+        bill.append(
+                "Confirmation : ")
+                .append(
+                        reservation
+                                .getConfirmationNumber())
+                .append("\n");
 
-        output.append(
-                "Confirmation No. : ")
-              .append(
-                reservation.getConfirmationNumber())
-              .append("\n");
+        if (reservation.getGuest() != null) {
 
-        output.append(
-                "Room Number      : ")
-              .append(
-                reservation.getAssignedRoomId() == null
-                    ? "-"
-                    : reservation.getAssignedRoomId())
-              .append("\n");
-
-        output.append(
-                "Room Type        : ")
-              .append(
-                reservation.getRoomType())
-              .append("\n");
-
-        output.append(
-                "Check-in         : ")
-              .append(
-                reservation.getCheckInDate())
-              .append("\n");
-
-        output.append(
-                "Check-out        : ")
-              .append(
-                reservation.getCheckOutDate())
-              .append("\n");
-
-        output.append(
-                "Number of Nights : ")
-              .append(nights)
-              .append("\n");
-
-        output.append(
-                "--------------------------------------------------------\n");
-
-        output.append(
-                String.format(
-                    "Room Charge      : RM %.2f\n",
-                    roomCharge));
-
-        output.append(
-                String.format(
-                    "Service Charge   : RM %.2f\n",
-                    serviceCharge));
-
-        output.append(
-                String.format(
-                    "Food & Beverage  : RM %.2f\n",
-                    foodCharge));
-
-        output.append(
-                "--------------------------------------------------------\n");
-
-        output.append(
-                String.format(
-                    "Subtotal         : RM %.2f\n",
-                    subtotal));
-
-        output.append(
-                String.format(
-                    "Tax (6%%)         : RM %.2f\n",
-                    tax));
-
-        output.append(
-                "--------------------------------------------------------\n");
-
-        output.append(
-                String.format(
-                    "TOTAL BILL       : RM %.2f\n",
-                    total));
-
-        output.append(
-                "========================================================\n");
-
-        return output.toString();
-    }
-
-    private double getRoomPrice(
-            String roomType) {
-
-        if (roomType == null) {
-            return 0.0;
+            bill.append(
+                    "Guest        : ")
+                    .append(
+                            reservation
+                                    .getGuest()
+                                    .getName())
+                    .append("\n");
         }
 
-        if (roomType.equalsIgnoreCase(
-                "Standard")) {
+        bill.append(
+                "Room Type    : ")
+                .append(
+                        reservation.getRoomType())
+                .append("\n");
 
-            return 200.00;
-        }
+        bill.append(
+                "Check-in     : ")
+                .append(
+                        reservation.getCheckInDate())
+                .append("\n");
 
-        if (roomType.equalsIgnoreCase(
-                "Deluxe")) {
+        bill.append(
+                "Check-out    : ")
+                .append(
+                        reservation.getCheckOutDate())
+                .append("\n");
 
-            return 300.00;
-        }
+        bill.append(
+                "Status       : ")
+                .append(
+                        reservation.getStatus())
+                .append("\n");
 
-        if (roomType.equalsIgnoreCase(
-                "Suite")) {
+        bill.append(
+                "\nBilling information is available "
+                + "from the reservation record.\n");
 
-            return 500.00;
-        }
+        bill.append(
+                "========================================\n");
 
-        return 200.00;
+        return bill.toString();
     }
 
 
-    public boolean isValidConfirmationNumber(
-            String confirmationNumber) {
+    public String generateFrontDeskReport() {
 
-        if (confirmationNumber == null) {
-            return false;
-        }
+        Reservation[] reservations =
+                walkIn.getAllReservations();
 
-        if (confirmationNumber.length() != 8) {
-            return false;
-        }
+        int total = 0;
+        int waiting = 0;
+        int assigned = 0;
+        int checkedIn = 0;
+        int checkedOut = 0;
+        int cancelled = 0;
 
-        for (int i = 0;
-             i < confirmationNumber.length();
-             i++) {
+        if (reservations != null) {
 
-            char c =
-                    confirmationNumber.charAt(i);
+            for (int i = 0;
+                 i < reservations.length;
+                 i++) {
 
-            if (!Character.isDigit(c)) {
-                return false;
+                Reservation reservation =
+                        reservations[i];
+
+                if (reservation == null) {
+                    continue;
+                }
+
+                total++;
+
+                ReservationStatus status =
+                        reservation.getStatus();
+
+                if (status ==
+                        ReservationStatus.WAITING) {
+
+                    waiting++;
+
+                } else if (status ==
+                        ReservationStatus.ASSIGNED) {
+
+                    assigned++;
+
+                } else if (status ==
+                        ReservationStatus.CHECKED_IN) {
+
+                    checkedIn++;
+
+                } else if (status ==
+                        ReservationStatus.CHECKED_OUT) {
+
+                    checkedOut++;
+
+                } else if (status ==
+                        ReservationStatus.CANCELLED) {
+
+                    cancelled++;
+                }
             }
         }
 
-        return true;
+        StringBuilder report =
+                new StringBuilder();
+
+        report.append(
+                "\n============================================\n");
+
+        report.append(
+                "          FRONT DESK SERVICE REPORT\n");
+
+        report.append(
+                "============================================\n");
+
+        report.append(
+                "Total Reservations : ")
+                .append(total)
+                .append("\n");
+
+        report.append(
+                "Waiting            : ")
+                .append(waiting)
+                .append("\n");
+
+        report.append(
+                "Assigned           : ")
+                .append(assigned)
+                .append("\n");
+
+        report.append(
+                "Checked-In         : ")
+                .append(checkedIn)
+                .append("\n");
+
+        report.append(
+                "Total Check-Out    : ")
+                .append(checkedOut)
+                .append("\n");
+
+        report.append(
+                "Cancelled          : ")
+                .append(cancelled)
+                .append("\n");
+
+        report.append(
+                "============================================\n");
+
+        return report.toString();
     }
 
-    public int getReservationHashSize() {
+  
 
-        return reservationHash.getSize();
+    public int getTotalCheckOut() {
+
+        Reservation[] reservations =
+                walkIn.getAllReservations();
+
+        int total = 0;
+
+        if (reservations == null) {
+            return 0;
+        }
+
+        for (int i = 0;
+             i < reservations.length;
+             i++) {
+
+            Reservation reservation =
+                    reservations[i];
+
+            if (reservation != null
+                    && reservation.getStatus()
+                    == ReservationStatus.CHECKED_OUT) {
+
+                total++;
+            }
+        }
+
+        return total;
     }
 
+    public Reservation[] getAllReservations() {
 
-    public HousekeepingController
-            getHousekeepingController() {
-
-        return housekeeping;
+        return walkIn.getAllReservations();
     }
 
     public void runFrontDesk() {
 
-        boundary.FrontDeskUI ui =
-                new boundary.FrontDeskUI(this);
+    boundary.FrontDeskUI ui =
+            new boundary.FrontDeskUI(this);
 
-        ui.run();
-    }
+    ui.run();
+}
 }
