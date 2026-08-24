@@ -2,7 +2,6 @@ package boundary;
 
 import control.HousekeepingController;
 import entity.HousekeepingStatus;
-
 import java.util.Scanner;
 
 /**
@@ -45,6 +44,16 @@ public class ConsoleUI {
                     viewAllRooms();
                     ConsoleStyle.pause(scanner);
                     break;
+                case "5":
+                    ConsoleStyle.clear();
+                    showStatusWorkloadReport();
+                    ConsoleStyle.pause(scanner);
+                    break;
+                case "6":
+                    ConsoleStyle.clear();
+                    showTaskHistoryReport();
+                    ConsoleStyle.pause(scanner);
+                    break;
                 case "0":
                     ConsoleStyle.info("Returning to hotel menu...");
                     return;
@@ -61,6 +70,8 @@ public class ConsoleUI {
         ConsoleStyle.menuItem(2, "Undo Last Action");
         ConsoleStyle.menuItem(3, "Redo Last Action");
         ConsoleStyle.menuItem(4, "View All Rooms");
+        ConsoleStyle.menuItem(5, "Status Workload Report");
+        ConsoleStyle.menuItem(6, "Task History Report");
         ConsoleStyle.menuExit(0, "Return to hotel menu");
         ConsoleStyle.prompt("Choose an option: ");
     }
@@ -112,5 +123,62 @@ public class ConsoleUI {
 
     private void viewAllRooms() {
         Reporter.printAllRooms(controller.getAllRooms());
+    }
+
+    private void showStatusWorkloadReport() {
+        ConsoleStyle.section("Status workload report filters");
+        HousekeepingStatus status = readStatusFilter();
+        String roomType = readRoomTypeFilter();
+        Boolean occupied = readOccupancyFilter();
+        Reporter.printMessage(controller.generateStatusWorkloadReport(status, roomType, occupied));
+    }
+
+    private void showTaskHistoryReport() {
+        ConsoleStyle.section("Task history report filters");
+        String roomType = readRoomTypeFilter();
+        ConsoleStyle.prompt("Minimum task-log entries (0 for all): ");
+        int minimumEntries = readNonNegativeInteger();
+        Reporter.printMessage(controller.generateTaskHistoryReport(roomType, minimumEntries));
+    }
+
+    private HousekeepingStatus readStatusFilter() {
+        ConsoleStyle.prompt("Status number (0 for all): ");
+        int choice = readNonNegativeInteger();
+        if (choice == 0) {
+            return null;
+        }
+        HousekeepingStatus[] statuses = HousekeepingStatus.values();
+        return choice <= statuses.length ? statuses[choice - 1] : null;
+    }
+
+    private Boolean readOccupancyFilter() {
+        ConsoleStyle.prompt("Occupancy (1 occupied, 2 free, 0 all): ");
+        int choice = readNonNegativeInteger();
+        if (choice == 1) {
+            return true;
+        }
+        return choice == 2 ? false : null;
+    }
+
+    private String readRoomTypeFilter() {
+        String[] roomTypes = { "All", "Standard", "Deluxe", "Suite" };
+        ConsoleStyle.prompt("Room type: 0 All, 1 Standard, 2 Deluxe, 3 Suite: ");
+        int choice = readNonNegativeInteger();
+        return choice >= 1 && choice <= roomTypes.length - 1 ? roomTypes[choice] : null;
+    }
+
+    private int readNonNegativeInteger() {
+        while (true) {
+            try {
+                int value = Integer.parseInt(scanner.nextLine().trim());
+                if (value >= 0) {
+                    return value;
+                }
+            } catch (NumberFormatException ignored) {
+                // Prompt again for malformed input.
+            }
+            ConsoleStyle.warn("Please enter a non-negative whole number.");
+            ConsoleStyle.prompt("Enter number: ");
+        }
     }
 }

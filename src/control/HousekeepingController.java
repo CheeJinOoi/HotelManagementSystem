@@ -1,11 +1,11 @@
 package control;
 
+import adt.ArrayStack;
+import adt.StackInterface;
 import entity.HousekeepingStatus;
 import entity.Room;
 import entity.StatusEntry;
 import entity.UndoRecord;
-import adt.ArrayStack;
-import adt.StackInterface;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -255,6 +255,112 @@ public class HousekeepingController {
             result[i] = rooms[i];
         }
         return result;
+    }
+
+    /** Linear search for rooms matching all supplied criteria. */
+    public Room[] searchRooms(HousekeepingStatus statusFilter, String roomTypeFilter,
+            Boolean occupiedFilter) {
+        int matchCount = 0;
+        for (int i = 0; i < roomCount; i++) {
+            if (matchesRoom(rooms[i], statusFilter, roomTypeFilter, occupiedFilter)) {
+                matchCount++;
+            }
+        }
+        Room[] matches = new Room[matchCount];
+        int index = 0;
+        for (int i = 0; i < roomCount; i++) {
+            if (matchesRoom(rooms[i], statusFilter, roomTypeFilter, occupiedFilter)) {
+                matches[index++] = rooms[i];
+            }
+        }
+        return matches;
+    }
+
+    /** Insertion sort used by housekeeping reports. */
+    public void insertionSortByTaskCount(Room[] reportRooms) {
+        for (int i = 1; i < reportRooms.length; i++) {
+            Room key = reportRooms[i];
+            int j = i - 1;
+            while (j >= 0 && reportRooms[j].getTaskLog().size() < key.getTaskLog().size()) {
+                reportRooms[j + 1] = reportRooms[j];
+                j--;
+            }
+            reportRooms[j + 1] = key;
+        }
+    }
+
+    /** Report 1: status workload filtered by status, room type, and occupancy. */
+    public String generateStatusWorkloadReport(HousekeepingStatus statusFilter,
+            String roomTypeFilter, Boolean occupiedFilter) {
+        Room[] matches = searchRooms(statusFilter, roomTypeFilter, occupiedFilter);
+        insertionSortByTaskCount(matches);
+        StringBuilder report = new StringBuilder();
+        report.append("\n==============================================================\n")
+                .append(" HOUSEKEEPING STATUS WORKLOAD REPORT\n")
+                .append(" Filters: status=").append(statusFilter == null ? "All" : statusFilter)
+                .append(", type=").append(roomTypeFilter == null ? "All" : roomTypeFilter)
+                .append(", occupancy=").append(occupiedFilter == null ? "All" : occupiedFilter ? "Occupied" : "Free")
+                .append("\n Sorted by task-log entries (highest first)\n")
+                .append("==============================================================\n")
+                .append(String.format("%-8s %-12s %-24s %-10s %-10s\n",
+                        "Room", "Type", "Status", "Occupied", "Tasks"));
+        for (int i = 0; i < matches.length; i++) {
+            Room room = matches[i];
+            report.append(String.format("%-8s %-12s %-24s %-10s %-10d\n",
+                    room.getRoomId(), room.getRoomType(), room.getCurrentStatus(),
+                    room.isOccupied() ? "Yes" : "No", room.getTaskLog().size()));
+        }
+        report.append("--------------------------------------------------------------\n")
+                .append("Matching rooms: ").append(matches.length).append('\n');
+        return report.toString();
+    }
+
+    /** Report 2: task history filtered by room type and minimum activity. */
+    public String generateTaskHistoryReport(String roomTypeFilter, int minimumTaskEntries) {
+        Room[] searched = searchRooms(null, roomTypeFilter, null);
+        int matchCount = 0;
+        for (int i = 0; i < searched.length; i++) {
+            if (searched[i].getTaskLog().size() >= minimumTaskEntries) {
+                matchCount++;
+            }
+        }
+        Room[] matches = new Room[matchCount];
+        int index = 0;
+        for (int i = 0; i < searched.length; i++) {
+            if (searched[i].getTaskLog().size() >= minimumTaskEntries) {
+                matches[index++] = searched[i];
+            }
+        }
+        insertionSortByTaskCount(matches);
+        StringBuilder report = new StringBuilder();
+        report.append("\n==============================================================\n")
+                .append(" HOUSEKEEPING TASK HISTORY REPORT\n")
+                .append(" Filters: type=").append(roomTypeFilter == null ? "All" : roomTypeFilter)
+                .append(", minimum task entries=").append(minimumTaskEntries).append('\n')
+                .append(" Sorted by task-log entries (highest first)\n")
+                .append("==============================================================\n")
+                .append(String.format("%-8s %-12s %-24s %-10s %-24s\n",
+                        "Room", "Type", "Status", "Tasks", "Last Updated By"));
+        for (int i = 0; i < matches.length; i++) {
+            Room room = matches[i];
+            report.append(String.format("%-8s %-12s %-24s %-10d %-24s\n",
+                    room.getRoomId(), room.getRoomType(), room.getCurrentStatus(),
+                    room.getTaskLog().size(), room.getLastUpdatedBy()));
+        }
+        report.append("--------------------------------------------------------------\n")
+                .append("Matching rooms: ").append(matches.length).append('\n');
+        return report.toString();
+    }
+
+    private boolean matchesRoom(Room room, HousekeepingStatus statusFilter, String roomTypeFilter,
+            Boolean occupiedFilter) {
+        if (statusFilter != null && room.getCurrentStatus() != statusFilter) {
+            return false;
+        }
+        if (roomTypeFilter != null && !roomTypeFilter.equalsIgnoreCase(room.getRoomType())) {
+            return false;
+        }
+        return occupiedFilter == null || room.isOccupied() == occupiedFilter;
     }
 
     }

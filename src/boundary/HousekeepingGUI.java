@@ -93,7 +93,9 @@ public class HousekeepingGUI extends JPanel {
     JButton btnRedo = UiTheme.secondaryButton("Redo Last Action");
     JButton btnDetails = UiTheme.accentButton("View Details");
     JButton btnRefresh = UiTheme.secondaryButton("Refresh Rooms");
-    add(UiTheme.buttonRow(btnUndo, btnRedo, btnDetails, btnRefresh), BorderLayout.NORTH);
+    JButton btnStatusReport = UiTheme.accentButton("Status Report");
+    JButton btnTaskReport = UiTheme.accentButton("Task History Report");
+    add(UiTheme.buttonRow(btnUndo, btnRedo, btnDetails, btnRefresh, btnStatusReport, btnTaskReport), BorderLayout.NORTH);
 
     JScrollPane tableScroll = new JScrollPane(roomTable);
     tableScroll.setPreferredSize(new Dimension(720, 420));
@@ -125,6 +127,8 @@ public class HousekeepingGUI extends JPanel {
     });
     btnDetails.addActionListener(e -> showSelectedDetails());
     btnRefresh.addActionListener(e -> refresh());
+    btnStatusReport.addActionListener(e -> showStatusWorkloadReport());
+    btnTaskReport.addActionListener(e -> showTaskHistoryReport());
 
     roomTable.getSelectionModel().addListSelectionListener(e -> {
       if (!e.getValueIsAdjusting()) {
@@ -244,6 +248,66 @@ public class HousekeepingGUI extends JPanel {
           .append('\n');
     }
     infoArea.setText(sb.toString());
+  }
+
+  private void showStatusWorkloadReport() {
+    String[] statusOptions = { "All", "Dirty", "Cleaning In Progress", "Inspected", "Clean" };
+    String statusChoice = (String) JOptionPane.showInputDialog(
+        this, "Status filter", "Status Workload Report", JOptionPane.QUESTION_MESSAGE,
+        null, statusOptions, statusOptions[0]);
+    if (statusChoice == null) {
+      return;
+    }
+    String roomType = chooseRoomType();
+    String[] occupancyOptions = { "All", "Occupied", "Free" };
+    String occupancyChoice = (String) JOptionPane.showInputDialog(
+        this, "Occupancy filter", "Status Workload Report", JOptionPane.QUESTION_MESSAGE,
+        null, occupancyOptions, occupancyOptions[0]);
+    if (occupancyChoice == null) {
+      return;
+    }
+    HousekeepingStatus status = statusChoice.equals("All") ? null : HousekeepingStatus.values()[
+        statusChoice.equals("Dirty") ? 0 : statusChoice.equals("Cleaning In Progress") ? 1
+            : statusChoice.equals("Inspected") ? 2 : 3];
+    Boolean occupied = occupancyChoice.equals("All") ? null : occupancyChoice.equals("Occupied");
+    infoArea.setText(controller.generateStatusWorkloadReport(
+        status, roomType == null || roomType.trim().isEmpty() ? null : roomType.trim(), occupied));
+  }
+
+  private void showTaskHistoryReport() {
+    String roomType = chooseRoomType();
+    if (roomType == null) {
+      return;
+    }
+    String minimumText = JOptionPane.showInputDialog(
+        this, "Minimum task-log entries:", "0");
+    if (minimumText == null) {
+      return;
+    }
+    int minimumEntries;
+    try {
+      minimumEntries = Integer.parseInt(minimumText.trim());
+      if (minimumEntries < 0) {
+        throw new NumberFormatException();
+      }
+    } catch (NumberFormatException ex) {
+      JOptionPane.showMessageDialog(this, "Enter a non-negative whole number.",
+          "Invalid filter", JOptionPane.WARNING_MESSAGE);
+      return;
+    }
+    infoArea.setText(controller.generateTaskHistoryReport(
+        roomType, minimumEntries));
+  }
+
+  private String chooseRoomType() {
+    String[] roomTypes = { "All", "Standard", "Deluxe", "Suite" };
+    String selected = (String) JOptionPane.showInputDialog(
+        this, "Room type filter", "Housekeeping Report", JOptionPane.QUESTION_MESSAGE,
+        null, roomTypes, roomTypes[0]);
+    if (selected == null || selected.equals("All")) {
+      return selected == null ? null : null;
+    }
+    return selected;
   }
 
   private void refreshRooms() {

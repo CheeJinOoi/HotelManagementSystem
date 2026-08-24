@@ -11,7 +11,7 @@ Double-click **`run.bat`**
 ### Method 2 — Terminal
 
 ```powershell
-cd "C:\Users\vinsx\Desktop\HotelManagementSystem"
+cd "C:\Users\ooich\Downloads\Hotel_Management_System"
 .\run.bat
 ```
 

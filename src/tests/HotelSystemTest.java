@@ -82,6 +82,15 @@ public class HotelSystemTest {
             housekeeping.undoLastAction().toLowerCase().contains("undo"));
         check("housekeeping redo works",
             housekeeping.redoLastAction().toLowerCase().contains("redo"));
+        check("housekeeping linear search applies criteria",
+            housekeeping.searchRooms(HousekeepingStatus.READY_FOR_CHECKIN, "Deluxe", false).length == 1);
+        check("housekeeping status workload report generated",
+            housekeeping.generateStatusWorkloadReport(
+                HousekeepingStatus.READY_FOR_CHECKIN, "Deluxe", false)
+                .contains("HOUSEKEEPING STATUS WORKLOAD REPORT"));
+        check("housekeeping task history report generated",
+            housekeeping.generateTaskHistoryReport("Deluxe", 1)
+                .contains("HOUSEKEEPING TASK HISTORY REPORT"));
 
         Path tempFile = Files.createTempFile("housekeeping-test-", ".txt");
         housekeeping.saveState(tempFile.toString());
