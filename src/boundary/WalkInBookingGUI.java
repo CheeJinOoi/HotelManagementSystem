@@ -127,11 +127,12 @@ public class WalkInBookingGUI extends JPanel {
     JButton btnAssign = UiTheme.accentButton("Assign Next Guest");
     JButton btnCancel = UiTheme.dangerButton("Cancel Waiting");
     JButton btnCheckout = UiTheme.secondaryButton("Check-Out Guest");
+    JButton btnSearch = UiTheme.secondaryButton("Search Reservation");
     JButton btnRooms = UiTheme.secondaryButton("Room Status");
     JButton btnReports = UiTheme.secondaryButton("Reports");
     JButton btnRefresh = UiTheme.secondaryButton("Refresh");
     add(UiTheme.buttonRow(
-        btnWalkIn, btnStandard, btnAssign, btnCancel, btnCheckout, btnRooms, btnReports, btnRefresh),
+        btnWalkIn, btnStandard, btnAssign, btnCancel, btnCheckout, btnSearch, btnRooms, btnReports, btnRefresh),
         BorderLayout.NORTH);
 
     JPanel tablesPanel = new JPanel(new BorderLayout(12, 12));
@@ -151,13 +152,16 @@ public class WalkInBookingGUI extends JPanel {
     JScrollPane infoScroll = new JScrollPane(infoArea);
     infoScroll.setPreferredSize(new Dimension(320, 120));
     UiTheme.styleListScroll(infoScroll);
-    add(UiTheme.titledPanel("Information", infoScroll), BorderLayout.SOUTH);
+    add(UiTheme.titledPanelWithView("Details / Reports", infoScroll,
+        () -> UiTheme.showDetailsDialog(this, "Details / Reports", infoArea.getText())),
+        BorderLayout.SOUTH);
 
     btnWalkIn.addActionListener(e -> showWalkInDialog());
     btnStandard.addActionListener(e -> showStandardBookingDialog());
     btnAssign.addActionListener(e -> assignNextGuest());
     btnCancel.addActionListener(e -> cancelSelectedOrPrompt());
     btnCheckout.addActionListener(e -> checkOutReservation());
+    btnSearch.addActionListener(e -> searchReservation());
     btnRooms.addActionListener(e -> showRoomStatusBoard());
     btnReports.addActionListener(e -> chooseAndShowReport());
     btnRefresh.addActionListener(e -> refresh());
@@ -347,6 +351,69 @@ public class WalkInBookingGUI extends JPanel {
     showResult(message);
     refresh();
     notifyDataChanged();
+  }
+
+  private void searchReservation() {
+    Reservation[] all = controller.getAllReservations();
+    if (all == null || all.length == 0) {
+      JOptionPane.showMessageDialog(this, "No guests / reservations to search.");
+      infoArea.setText("No reservations found.");
+      return;
+    }
+
+    String[] labels = new String[all.length];
+    for (int i = 0; i < all.length; i++) {
+      Reservation reservation = all[i];
+      String guestName = reservation.getGuest() == null ? "-" : reservation.getGuest().getName();
+      String room = reservation.getAssignedRoomId() == null ? "-" : reservation.getAssignedRoomId();
+      labels[i] = reservation.getConfirmationNumber()
+          + "  |  " + guestName
+          + "  |  " + reservation.getRoomType()
+          + "  |  " + reservation.getStatus()
+          + "  |  Room " + room;
+    }
+
+    JComboBox<String> guestBox = new JComboBox<>(labels);
+    String selectedConfirm = selectedConfirmation();
+    if (selectedConfirm != null) {
+      for (int i = 0; i < all.length; i++) {
+        if (selectedConfirm.equals(all[i].getConfirmationNumber())) {
+          guestBox.setSelectedIndex(i);
+          break;
+        }
+      }
+    }
+
+    JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
+    panel.setBackground(UiTheme.SURFACE);
+    panel.add(UiTheme.bodyLabel("Choose a guest / reservation:"));
+    panel.add(guestBox);
+
+    int result = JOptionPane.showConfirmDialog(
+        this,
+        panel,
+        "Search Reservation",
+        JOptionPane.OK_CANCEL_OPTION,
+        JOptionPane.PLAIN_MESSAGE);
+    if (result != JOptionPane.OK_OPTION) {
+      return;
+    }
+
+    int index = guestBox.getSelectedIndex();
+    if (index < 0 || index >= all.length) {
+      return;
+    }
+
+    Reservation found = all[index];
+    selectConfirmation(found.getConfirmationNumber());
+    StringBuilder details = new StringBuilder(controller.formatReservationDetails(found));
+    int queuePos = controller.getPendingQueuePosition(found);
+    if (queuePos > 0) {
+      details.append("\nPending queue position: ").append(queuePos).append('\n');
+      details.append(controller.getAssignmentOutlook(found)).append('\n');
+    }
+    details.append('\n').append(readyRoomsSummary(found.getRoomType()));
+    infoArea.setText(details.toString());
   }
 
   private void showRoomStatusBoard() {

@@ -5,7 +5,6 @@ import boundary.HousekeepingGUI;
 import boundary.VIPRoomAllocationGUI;
 import boundary.WalkInBookingGUI;
 import control.FrontDeskController;
-import control.FrontDeskReports;
 import control.HotelBootstrap;
 import control.HousekeepingController;
 import control.VIPRoomAllocationControl;
@@ -121,9 +120,8 @@ public class HotelSystemTest {
         String emptyType = frontDesk.searchRoomAvailability(" ");
         check("empty room type is rejected", emptyType.toLowerCase().contains("required"));
 
-        FrontDeskReports reports = new FrontDeskReports(frontDesk);
-        String vipReport = reports.generateVIPGuestReport();
-        String deskReport = reports.generateFrontDeskReport();
+        String vipReport = frontDesk.generateVIPGuestReport();
+        String deskReport = frontDesk.generateFrontDeskReport();
         check("VIP report generated", vipReport != null && vipReport.contains("VIP GUEST REPORT"));
         check("Front Desk report generated", deskReport != null && deskReport.contains("FRONT DESK"));
     }
@@ -134,7 +132,6 @@ public class HotelSystemTest {
         HousekeepingController housekeeping = HotelBootstrap.create();
         WalkInBookingControl walkIn = new WalkInBookingControl(housekeeping);
         FrontDeskController frontDesk = new FrontDeskController(walkIn);
-        FrontDeskReports reports = new FrontDeskReports(frontDesk);
 
         check("walk-in shares housekeeping controller",
             walkIn.getHousekeepingController() == housekeeping);
@@ -190,7 +187,7 @@ public class HotelSystemTest {
             check("bill generated for checked-in/out guest (none in store)", true);
         }
 
-        Reservation[] vipRows = reports.getVIPReservations();
+        Reservation[] vipRows = frontDesk.getVIPReservations();
         check("VIP report array is non-null", vipRows != null);
 
         VIPRoomAllocationControl vip = new VIPRoomAllocationControl();

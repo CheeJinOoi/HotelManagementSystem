@@ -293,10 +293,11 @@ public class VIPRoomAllocationControl {
     }
 
     // ===== Queue Report =====
-    public void generateQueueReport() {
-        System.out.println("\n" + "=".repeat(60));
-        System.out.println("📋 VIP QUEUE REPORT");
-        System.out.println("=".repeat(60));
+    public String generateQueueReport() {
+        StringBuilder report = new StringBuilder();
+        report.append("============================================================\n");
+        report.append("VIP QUEUE REPORT\n");
+        report.append("============================================================\n");
 
         VIPGuest[] temp = new VIPGuest[queue.size()];
         int tempCount = 0;
@@ -309,21 +310,21 @@ public class VIPRoomAllocationControl {
 
         quickSortByTier(temp, 0, tempCount - 1);
 
-        System.out.printf("%-5s %-15s %-12s %-15s %-15s%n",
-            "#", "Name", "Tier", "Phone", "Preferred Room");
-        System.out.println("-".repeat(65));
+        report.append(String.format("%-5s %-15s %-12s %-15s %-15s%n",
+            "#", "Name", "Tier", "Phone", "Preferred Room"));
+        report.append("-------------------------------------------------------------\n");
 
         for (int i = 0; i < tempCount; i++) {
             VIPGuest g = temp[i];
-            System.out.printf("%-5d %-15s %-12s %-15s %-15s%n",
+            report.append(String.format("%-5d %-15s %-12s %-15s %-15s%n",
                 (i + 1),
                 g.getName(),
                 g.getTier().getDisplay(),
                 g.getPhone(),
-                g.getPreferredRoomType());
+                g.getPreferredRoomType()));
         }
-        System.out.println("-".repeat(65));
-        System.out.println("📊 Total VIP guests waiting: " + tempCount);
+        report.append("-------------------------------------------------------------\n");
+        report.append("Total VIP guests waiting: ").append(tempCount).append('\n');
 
         int elite = 0, diamond = 0, platinum = 0;
         for (int i = 0; i < tempCount; i++) {
@@ -341,21 +342,28 @@ public class VIPRoomAllocationControl {
                     break;
             }
         }
-        System.out.println("   ├─ Elite: " + elite);
-        System.out.println("   ├─ Diamond: " + diamond);
-        System.out.println("   └─ Platinum: " + platinum);
-        System.out.println("=".repeat(60));
+        report.append("  Elite: ").append(elite).append('\n');
+        report.append("  Diamond: ").append(diamond).append('\n');
+        report.append("  Platinum: ").append(platinum).append('\n');
+        report.append("============================================================\n");
+
+        String text = report.toString();
+        System.out.println(text);
+        return text;
     }
 
     // ===== Allocation Report =====
-    public void generateAllocationReport() {
-        System.out.println("\n" + "=".repeat(60));
-        System.out.println("📊 ROOM ALLOCATION PERFORMANCE REPORT");
-        System.out.println("=".repeat(60));
+    public String generateAllocationReport() {
+        StringBuilder report = new StringBuilder();
+        report.append("============================================================\n");
+        report.append("ROOM ALLOCATION PERFORMANCE REPORT\n");
+        report.append("============================================================\n");
 
         if (roomCount == 0) {
-            System.out.println("No rooms available.");
-            return;
+            report.append("No rooms available.\n");
+            String text = report.toString();
+            System.out.println(text);
+            return text;
         }
 
         int occupied = 0;
@@ -369,14 +377,14 @@ public class VIPRoomAllocationControl {
             }
         }
 
-        System.out.println("🏨 ROOM STATISTICS:");
-        System.out.println("   ├─ Total Rooms: " + roomCount);
-        System.out.println("   ├─ Occupied: " + occupied);
-        System.out.println("   ├─ Available: " + available);
-        System.out.printf("   └─ Occupancy Rate: %.2f%%%n",
-            (double) occupied / roomCount * 100);
+        report.append("ROOM STATISTICS:\n");
+        report.append("  Total Rooms: ").append(roomCount).append('\n');
+        report.append("  Occupied: ").append(occupied).append('\n');
+        report.append("  Available: ").append(available).append('\n');
+        report.append(String.format("  Occupancy Rate: %.2f%%%n",
+            (double) occupied / roomCount * 100));
 
-        System.out.println("\n📂 ROOM TYPE BREAKDOWN:");
+        report.append("\nROOM TYPE BREAKDOWN:\n");
         String[] types = new String[roomCount];
         int[] typeCounts = new int[roomCount];
         int[] typeOccupied = new int[roomCount];
@@ -403,22 +411,27 @@ public class VIPRoomAllocationControl {
             }
         }
 
-        System.out.printf("%-12s %-10s %-10s %-10s%n", "Room Type", "Total", "Occupied", "Available");
-        System.out.println("-".repeat(45));
+        report.append(String.format("%-12s %-10s %-10s %-10s%n",
+            "Room Type", "Total", "Occupied", "Available"));
+        report.append("---------------------------------------------\n");
         for (int i = 0; i < typeCount; i++) {
-            System.out.printf("%-12s %-10d %-10d %-10d%n",
-                types[i], typeCounts[i], typeOccupied[i], typeCounts[i] - typeOccupied[i]);
+            report.append(String.format("%-12s %-10d %-10d %-10d%n",
+                types[i], typeCounts[i], typeOccupied[i], typeCounts[i] - typeOccupied[i]));
         }
 
-        System.out.println("\n📝 BOOKING HISTORY (" + bookingCount + " records):");
+        report.append("\nBOOKING HISTORY (").append(bookingCount).append(" records):\n");
         if (bookingCount == 0) {
-            System.out.println("   └─ No bookings yet.");
+            report.append("  No bookings yet.\n");
         } else {
             for (int i = 0; i < bookingCount; i++) {
-                System.out.println("   " + (i + 1) + ". " + bookingHistory[i]);
+                report.append("  ").append(i + 1).append(". ").append(bookingHistory[i]).append('\n');
             }
         }
-        System.out.println("=".repeat(60));
+        report.append("============================================================\n");
+
+        String text = report.toString();
+        System.out.println(text);
+        return text;
     }
 
     // ===== Quick Sort =====

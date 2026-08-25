@@ -131,6 +131,53 @@ public final class UiTheme {
     return wrap;
   }
 
+  /**
+   * Titled content panel with a View button beside the title.
+   * onView is called when the user clicks View (usually opens a larger dialog).
+   */
+  public static JPanel titledPanelWithView(String title, JComponent content, Runnable onView) {
+    JPanel wrap = new JPanel(new java.awt.BorderLayout(0, 6));
+    wrap.setOpaque(true);
+    wrap.setBackground(PANEL);
+    wrap.setForeground(TEXT);
+    wrap.setBorder(new CompoundBorder(
+        new CompoundBorder(
+            new MatteBorder(0, 3, 0, 0, TEAL),
+            new LineBorder(BORDER, 1, true)),
+        new EmptyBorder(8, 10, 10, 10)));
+
+    JPanel header = new JPanel(new java.awt.BorderLayout(8, 0));
+    header.setOpaque(false);
+    JLabel titleLabel = new JLabel(title);
+    titleLabel.setFont(FONT_TITLE);
+    titleLabel.setForeground(CHARCOAL);
+    JButton viewButton = secondaryButton("View");
+    viewButton.setBorder(new EmptyBorder(6, 14, 6, 14));
+    if (onView != null) {
+      viewButton.addActionListener(e -> onView.run());
+    }
+    header.add(titleLabel, java.awt.BorderLayout.WEST);
+    header.add(viewButton, java.awt.BorderLayout.EAST);
+
+    wrap.add(header, java.awt.BorderLayout.NORTH);
+    wrap.add(content, java.awt.BorderLayout.CENTER);
+    return wrap;
+  }
+
+  /** Larger popup for reading details / reports. */
+  public static void showDetailsDialog(java.awt.Component parent, String title, String text) {
+    JTextArea area = new JTextArea(text == null ? "" : text);
+    styleInfoArea(area);
+    JScrollPane scroll = new JScrollPane(area);
+    styleListScroll(scroll);
+    scroll.setPreferredSize(new Dimension(820, 560));
+    javax.swing.JOptionPane.showMessageDialog(
+        parent,
+        scroll,
+        title,
+        javax.swing.JOptionPane.PLAIN_MESSAGE);
+  }
+
   public static Border titledBorder(String title) {
     TitledBorder titled = BorderFactory.createTitledBorder(
         new CompoundBorder(

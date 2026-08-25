@@ -1,7 +1,6 @@
 package boundary;
 
 import control.FrontDeskController;
-import control.FrontDeskReports;
 import entity.Guest;
 import entity.Reservation;
 import entity.Room;
@@ -38,7 +37,6 @@ public class FrontDeskGUI extends JPanel {
     private static final String[] ROOM_TYPES = { "Standard", "Deluxe", "Suite" };
 
     private final FrontDeskController controller;
-    private final FrontDeskReports reports;
     private final DefaultTableModel tableModel;
     private final JTable resultTable;
     private final JTextField confirmationField;
@@ -46,7 +44,6 @@ public class FrontDeskGUI extends JPanel {
 
     public FrontDeskGUI(FrontDeskController controller) {
         this.controller = controller;
-        this.reports = new FrontDeskReports(controller);
         UiTheme.styleRoot(this);
         setLayout(new BorderLayout(12, 12));
 
@@ -114,7 +111,9 @@ public class FrontDeskGUI extends JPanel {
         JScrollPane outputScroll = new JScrollPane(outputArea);
         outputScroll.setPreferredSize(new Dimension(720, 170));
         UiTheme.styleListScroll(outputScroll);
-        add(UiTheme.titledPanel("Details / Report", outputScroll), BorderLayout.SOUTH);
+        add(UiTheme.titledPanelWithView("Details / Reports", outputScroll,
+            () -> UiTheme.showDetailsDialog(this, "Details / Reports", outputArea.getText())),
+            BorderLayout.SOUTH);
 
         searchGuestButton.addActionListener(e -> searchGuest());
         searchReservationButton.addActionListener(e -> searchReservation());
@@ -242,7 +241,7 @@ public class FrontDeskGUI extends JPanel {
 
     private void showVIPGuestReport() {
         controller.refreshReservationHash();
-        Reservation[] vipReservations = reports.getVIPReservations();
+        Reservation[] vipReservations = controller.getVIPReservations();
         setColumns(VIP_COLUMNS);
         for (int i = 0; i < vipReservations.length; i++) {
             Reservation reservation = vipReservations[i];
@@ -251,20 +250,20 @@ public class FrontDeskGUI extends JPanel {
                 reservation.getConfirmationNumber(),
                 roomNumber(reservation),
                 reservation.getStatus(),
-                reports.getVipLevel(reservation)
+                controller.getVipLevel(reservation)
             });
         }
-        outputArea.setText(reports.generateVIPGuestReport());
+        outputArea.setText(controller.generateVIPGuestReport());
     }
 
     private void showFrontDeskReport() {
         controller.refreshReservationHash();
-        Reservation[] sorted = reports.getReservationsSortedByConfirmation();
+        Reservation[] sorted = controller.getReservationsSortedByConfirmation();
         setColumns(ALL_COLUMNS);
         for (int i = 0; i < sorted.length; i++) {
             addReservationRow(sorted[i]);
         }
-        outputArea.setText(reports.generateFrontDeskReport());
+        outputArea.setText(controller.generateFrontDeskReport());
     }
 
     private void showAllReservations() {

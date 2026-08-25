@@ -106,7 +106,9 @@ public class VIPRoomAllocationGUI extends JPanel {
         JScrollPane infoScroll = new JScrollPane(infoArea);
         infoScroll.setPreferredSize(new Dimension(320, 110));
         UiTheme.styleListScroll(infoScroll);
-        add(UiTheme.titledPanel("Information", infoScroll), BorderLayout.SOUTH);
+        add(UiTheme.titledPanelWithView("Details / Reports", infoScroll,
+            () -> UiTheme.showDetailsDialog(this, "Details / Reports", infoArea.getText())),
+            BorderLayout.SOUTH);
 
         btnAddVIP.addActionListener(e -> showAddVIPDialog());
         btnAllocate.addActionListener(e -> allocateRoom());
@@ -305,24 +307,10 @@ public class VIPRoomAllocationGUI extends JPanel {
     }
 
     private void showQueueReport() {
-        infoArea.setText("Generating Queue Report...\n");
-        control.generateQueueReport();
-        infoArea.append("Queue Report generated (check console output).");
-
-        JOptionPane.showMessageDialog(this,
-            "Queue Report generated!\nCheck the console for detailed output.",
-            "Report Generated",
-            JOptionPane.INFORMATION_MESSAGE);
+        infoArea.setText(control.generateQueueReport());
     }
 
     private void showAllocationReport() {
-        infoArea.setText("Generating Allocation Report...\n");
-        control.generateAllocationReport();
-        infoArea.append("Allocation Report generated (check console output).");
-
-        JOptionPane.showMessageDialog(this,
-            "Allocation Report generated!\nCheck the console for detailed output.",
-            "Report Generated",
-            JOptionPane.INFORMATION_MESSAGE);
+        infoArea.setText(control.generateAllocationReport());
     }
 }

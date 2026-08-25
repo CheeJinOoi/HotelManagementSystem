@@ -91,11 +91,14 @@ public class HousekeepingGUI extends JPanel {
   private void initComponents() {
     JButton btnUndo = UiTheme.secondaryButton("Undo Last Action");
     JButton btnRedo = UiTheme.secondaryButton("Redo Last Action");
+    JButton btnSearch = UiTheme.primaryButton("Search Rooms");
     JButton btnDetails = UiTheme.accentButton("View Details");
     JButton btnRefresh = UiTheme.secondaryButton("Refresh Rooms");
     JButton btnStatusReport = UiTheme.accentButton("Status Report");
     JButton btnTaskReport = UiTheme.accentButton("Task History Report");
-    add(UiTheme.buttonRow(btnUndo, btnRedo, btnDetails, btnRefresh, btnStatusReport, btnTaskReport), BorderLayout.NORTH);
+    add(UiTheme.buttonRow(
+        btnUndo, btnRedo, btnSearch, btnDetails, btnRefresh, btnStatusReport, btnTaskReport),
+        BorderLayout.NORTH);
 
     JScrollPane tableScroll = new JScrollPane(roomTable);
     tableScroll.setPreferredSize(new Dimension(720, 420));
@@ -105,7 +108,9 @@ public class HousekeepingGUI extends JPanel {
     JScrollPane infoScroll = new JScrollPane(infoArea);
     infoScroll.setPreferredSize(new Dimension(720, 160));
     UiTheme.styleListScroll(infoScroll);
-    add(UiTheme.titledPanel("Room details / Task log", infoScroll), BorderLayout.SOUTH);
+    add(UiTheme.titledPanelWithView("Room details / Task log", infoScroll,
+        () -> UiTheme.showDetailsDialog(this, "Room details / Task log", infoArea.getText())),
+        BorderLayout.SOUTH);
 
     btnUndo.addActionListener(e -> {
       if (!confirmAction("Undo the last housekeeping action?", "Confirm Undo")) {
@@ -126,6 +131,7 @@ public class HousekeepingGUI extends JPanel {
       notifyDataChanged();
     });
     btnDetails.addActionListener(e -> showSelectedDetails());
+    btnSearch.addActionListener(e -> searchRooms());
     btnRefresh.addActionListener(e -> refresh());
     btnStatusReport.addActionListener(e -> showStatusWorkloadReport());
     btnTaskReport.addActionListener(e -> showTaskHistoryReport());
@@ -248,6 +254,104 @@ public class HousekeepingGUI extends JPanel {
           .append('\n');
     }
     infoArea.setText(sb.toString());
+  }
+
+  private void searchRooms() {
+    String roomId = promptOptionalText("Room ID (blank = search by filters):");
+    if (roomId == null) {
+      return;
+    }
+    roomId = roomId.trim();
+
+    if (!roomId.isEmpty()) {
+      Room room = controller.findRoomById(roomId);
+      if (room == null) {
+        infoArea.setText("Room not found: " + roomId);
+        JOptionPane.showMessageDialog(this, "Room not found.");
+        return;
+      }
+      selectRoom(room.getRoomId());
+      showSelectedDetails();
+      return;
+    }
+
+    String[] statusOptions = { "All", "Dirty", "Cleaning In Progress", "Inspected", "Clean" };
+    String statusChoice = (String) JOptionPane.showInputDialog(
+        this, "Status filter", "Search Rooms", JOptionPane.QUESTION_MESSAGE,
+        null, statusOptions, statusOptions[0]);
+    if (statusChoice == null) {
+      return;
+    }
+
+    String typeChoice = chooseSearchRoomType();
+    if (typeChoice == null) {
+      return;
+    }
+
+    String[] occupancyOptions = { "All", "Occupied", "Free" };
+    String occupancyChoice = (String) JOptionPane.showInputDialog(
+        this, "Occupancy filter", "Search Rooms", JOptionPane.QUESTION_MESSAGE,
+        null, occupancyOptions, occupancyOptions[0]);
+    if (occupancyChoice == null) {
+      return;
+    }
+
+    HousekeepingStatus status = statusChoice.equals("All") ? null : HousekeepingStatus.values()[
+        statusChoice.equals("Dirty") ? 0 : statusChoice.equals("Cleaning In Progress") ? 1
+            : statusChoice.equals("Inspected") ? 2 : 3];
+    String typeFilter = typeChoice.equals("All") ? null : typeChoice;
+    Boolean occupied = occupancyChoice.equals("All") ? null : occupancyChoice.equals("Occupied");
+
+    Room[] matches = controller.searchRooms(status, typeFilter, occupied);
+    controller.insertionSortByTaskCount(matches);
+
+    roomTableModel.setRowCount(0);
+    StringBuilder summary = new StringBuilder();
+    summary.append("Search results: ").append(matches.length).append(" room(s)\n")
+        .append("Filters: status=").append(statusChoice)
+        .append(", type=").append(typeChoice)
+        .append(", occupancy=").append(occupancyChoice)
+        .append("\nSorted by task-log entries (highest first)\n\n");
+
+    for (int i = 0; i < matches.length; i++) {
+      Room room = matches[i];
+      roomTableModel.addRow(new Object[] {
+          room.getRoomId(),
+          room.getRoomType(),
+          room.getCurrentStatus(),
+          room.isOccupied() ? "Occupied" : "Free",
+          room.isOccupied() && room.getAssignedConfirmationNumber() != null
+              ? room.getAssignedConfirmationNumber() : "-",
+          room.getLastUpdatedBy(),
+          room.getLastUpdatedTime() == null ? "-" : room.getLastUpdatedTime().format(TIME_FMT)
+      });
+      summary.append(String.format("%s  %s  %s  %s  tasks=%d\n",
+          room.getRoomId(),
+          room.getRoomType(),
+          room.getCurrentStatus(),
+          room.isOccupied() ? "Occupied" : "Free",
+          room.getTaskLog().size()));
+    }
+
+    if (matches.length > 0) {
+      roomTable.setRowSelectionInterval(0, 0);
+    }
+    infoArea.setText(summary.toString());
+  }
+
+  private String chooseSearchRoomType() {
+    String[] roomTypes = { "All", "Standard", "Deluxe", "Suite" };
+    return (String) JOptionPane.showInputDialog(
+        this, "Room type filter", "Search Rooms", JOptionPane.QUESTION_MESSAGE,
+        null, roomTypes, roomTypes[0]);
+  }
+
+  private String promptOptionalText(String message) {
+    String input = JOptionPane.showInputDialog(this, message);
+    if (input == null) {
+      return null;
+    }
+    return input;
   }
 
   private void showStatusWorkloadReport() {
