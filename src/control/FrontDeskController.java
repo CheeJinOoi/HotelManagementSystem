@@ -320,6 +320,50 @@ public class FrontDeskController {
         return total;
     }
 
+    public Reservation[] getCheckedOutReservations() {
+
+    Reservation[] all = getAllReservations();
+
+    if (all == null || all.length == 0) {
+        return new Reservation[0];
+    }
+
+    int count = 0;
+
+    // Filter checked-out reservations
+    for (int i = 0; i < all.length; i++) {
+
+        if (all[i] != null
+                && all[i].getStatus()
+                == ReservationStatus.CHECKED_OUT) {
+
+            count++;
+        }
+    }
+
+    Reservation[] checkedOut =
+            new Reservation[count];
+
+    int index = 0;
+
+    for (int i = 0; i < all.length; i++) {
+
+        if (all[i] != null
+                && all[i].getStatus()
+                == ReservationStatus.CHECKED_OUT) {
+
+            checkedOut[index] = all[i];
+
+            index++;
+        }
+    }
+
+    // Sorting
+    insertionSortByConfirmation(checkedOut);
+
+    return checkedOut;
+    }
+
     public Reservation[] getAllReservations() {
         return walkIn.getAllReservations();
     }
@@ -654,5 +698,87 @@ public class FrontDeskController {
             return 500.00;
         }
         return 200.00;
+    }
+    public String generateCheckOutReport() {
+
+    Reservation[] checkedOut =
+            getCheckedOutReservations();
+
+    StringBuilder report =
+            new StringBuilder();
+
+    report.append(
+            "\n============================================================\n");
+
+    report.append(
+            "                 CHECK-OUT REPORT\n");
+
+    report.append(
+            "============================================================\n");
+
+    report.append(
+            "Filter : Status = CHECKED_OUT\n");
+
+    report.append(
+            "Sort   : Confirmation Number (Ascending)\n");
+
+    report.append(
+            "------------------------------------------------------------\n");
+
+    report.append(
+            String.format(
+                    "%-12s %-20s %-12s %-8s %-12s%n",
+                    "Confirm",
+                    "Guest",
+                    "Room Type",
+                    "Room",
+                    "Check-Out"));
+
+    report.append(
+            "------------------------------------------------------------\n");
+
+    for (int i = 0;
+         i < checkedOut.length;
+         i++) {
+
+        Reservation reservation =
+                checkedOut[i];
+
+        if (reservation == null) {
+            continue;
+        }
+
+        String guestName =
+                reservation.getGuest() == null
+                        ? "-"
+                        : reservation.getGuest().getName();
+
+        String room =
+                reservation.getAssignedRoomId() == null
+                        ? "-"
+                        : reservation.getAssignedRoomId();
+
+        report.append(
+                String.format(
+                        "%-12s %-20s %-12s %-8s %-12s%n",
+                        reservation.getConfirmationNumber(),
+                        guestName,
+                        reservation.getRoomType(),
+                        room,
+                        reservation.getCheckOutDate()));
+    }
+
+    report.append(
+            "------------------------------------------------------------\n");
+
+    report.append(
+            "Total Check-Out : ")
+            .append(checkedOut.length)
+            .append("\n");
+
+    report.append(
+            "============================================================\n");
+
+    return report.toString();
     }
 }
