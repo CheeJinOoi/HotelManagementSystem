@@ -28,12 +28,19 @@ public class VIPRoomAllocationGUI extends JPanel {
 
     public VIPRoomAllocationGUI(VIPRoomAllocationControl control) {
         this.control = control;
+
         UiTheme.styleRoot(this);
         setLayout(new BorderLayout(12, 12));
 
-   
         queueTableModel = new DefaultTableModel(
-            new String[]{"#", "Name", "Tier", "Phone", "Preferred Room"}, 0
+            new String[]{
+                "#",
+                "Name",
+                "Tier",
+                "Phone",
+                "Preferred Room"
+            },
+            0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -42,7 +49,13 @@ public class VIPRoomAllocationGUI extends JPanel {
         };
 
         roomTableModel = new DefaultTableModel(
-            new String[]{"Room ID", "Type", "Status", "Assigned To"}, 0
+            new String[]{
+                "Room ID",
+                "Type",
+                "Status",
+                "Assigned To"
+            },
+            0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -52,6 +65,7 @@ public class VIPRoomAllocationGUI extends JPanel {
 
         queueTable = new JTable(queueTableModel);
         roomTable = new JTable(roomTableModel);
+
         UiTheme.styleTable(queueTable);
         UiTheme.styleTable(roomTable);
 
@@ -77,240 +91,644 @@ public class VIPRoomAllocationGUI extends JPanel {
         }
     }
 
+    // ===== Initialize GUI Components =====
     private void initComponents() {
-        JButton btnAddVIP = UiTheme.primaryButton("Add VIP Guest");
-        JButton btnAllocate = UiTheme.accentButton("Allocate Room");
-        JButton btnRelease = UiTheme.secondaryButton("Release Room");
-        JButton btnSearch = UiTheme.secondaryButton("Search VIP");
-        JButton btnQueueReport = UiTheme.secondaryButton("Queue Report");
-        JButton btnAllocReport = UiTheme.secondaryButton("Allocation Report");
-        JButton btnRefresh = UiTheme.secondaryButton("Refresh");
-        add(UiTheme.buttonRow(
-            btnAddVIP, btnAllocate, btnRelease, btnSearch, btnQueueReport, btnAllocReport, btnRefresh),
-            BorderLayout.NORTH);
 
-        JPanel tablesPanel = new JPanel(new BorderLayout(12, 12));
+        JButton btnAddVIP =
+            UiTheme.primaryButton("Add VIP Guest");
+
+        JButton btnAllocate =
+            UiTheme.accentButton("Allocate Room");
+
+        JButton btnRelease =
+            UiTheme.secondaryButton("Release Room");
+
+        JButton btnSearch =
+            UiTheme.secondaryButton("Search VIP");
+
+        JButton btnDeleteVIP =
+            UiTheme.secondaryButton("Delete VIP");
+
+        JButton btnQueueReport =
+            UiTheme.secondaryButton("Queue Report");
+
+        JButton btnAllocReport =
+            UiTheme.secondaryButton("Allocation Report");
+
+        JButton btnRefresh =
+            UiTheme.secondaryButton("Refresh");
+
+        add(
+            UiTheme.buttonRow(
+                btnAddVIP,
+                btnAllocate,
+                btnRelease,
+                btnSearch,
+                btnDeleteVIP,
+                btnQueueReport,
+                btnAllocReport,
+                btnRefresh
+            ),
+            BorderLayout.NORTH
+        );
+
+        JPanel tablesPanel =
+            new JPanel(new BorderLayout(12, 12));
+
         tablesPanel.setOpaque(false);
-        add(tablesPanel, BorderLayout.CENTER);
 
-        JScrollPane queueScroll = new JScrollPane(queueTable);
-        queueScroll.setPreferredSize(new Dimension(450, 420));
+        add(
+            tablesPanel,
+            BorderLayout.CENTER
+        );
+
+        JScrollPane queueScroll =
+            new JScrollPane(queueTable);
+
+        queueScroll.setPreferredSize(
+            new Dimension(450, 420)
+        );
+
         UiTheme.styleListScroll(queueScroll);
-        tablesPanel.add(UiTheme.titledPanel("VIP Waiting Queue", queueScroll), BorderLayout.WEST);
 
-        JScrollPane roomScroll = new JScrollPane(roomTable);
-        roomScroll.setPreferredSize(new Dimension(520, 420));
+        tablesPanel.add(
+            UiTheme.titledPanel(
+                "VIP Waiting Queue",
+                queueScroll
+            ),
+            BorderLayout.WEST
+        );
+
+        JScrollPane roomScroll =
+            new JScrollPane(roomTable);
+
+        roomScroll.setPreferredSize(
+            new Dimension(520, 420)
+        );
+
         UiTheme.styleListScroll(roomScroll);
-        tablesPanel.add(UiTheme.titledPanel("Room Status", roomScroll), BorderLayout.CENTER);
 
-        JScrollPane infoScroll = new JScrollPane(infoArea);
-        infoScroll.setPreferredSize(new Dimension(320, 110));
+        tablesPanel.add(
+            UiTheme.titledPanel(
+                "Room Status",
+                roomScroll
+            ),
+            BorderLayout.CENTER
+        );
+
+        JScrollPane infoScroll =
+            new JScrollPane(infoArea);
+
+        infoScroll.setPreferredSize(
+            new Dimension(320, 110)
+        );
+
         UiTheme.styleListScroll(infoScroll);
-        add(UiTheme.titledPanelWithView("Details / Reports", infoScroll,
-            () -> UiTheme.showDetailsDialog(this, "Details / Reports", infoArea.getText())),
-            BorderLayout.SOUTH);
 
-        btnAddVIP.addActionListener(e -> showAddVIPDialog());
-        btnAllocate.addActionListener(e -> allocateRoom());
-        btnRelease.addActionListener(e -> releaseRoom());
-        btnSearch.addActionListener(e -> searchVIP());
-        btnQueueReport.addActionListener(e -> showQueueReport());
-        btnAllocReport.addActionListener(e -> showAllocationReport());
-        btnRefresh.addActionListener(e -> refresh());
+        add(
+            UiTheme.titledPanelWithView(
+                "Details / Reports",
+                infoScroll,
+                () -> UiTheme.showDetailsDialog(
+                    this,
+                    "Details / Reports",
+                    infoArea.getText()
+                )
+            ),
+            BorderLayout.SOUTH
+        );
+
+        // ===== Button Actions =====
+
+        btnAddVIP.addActionListener(
+            e -> showAddVIPDialog()
+        );
+
+        btnAllocate.addActionListener(
+            e -> allocateRoom()
+        );
+
+        btnRelease.addActionListener(
+            e -> releaseRoom()
+        );
+
+        btnSearch.addActionListener(
+            e -> searchVIP()
+        );
+
+        btnDeleteVIP.addActionListener(
+            e -> deleteVIP()
+        );
+
+        btnQueueReport.addActionListener(
+            e -> showQueueReport()
+        );
+
+        btnAllocReport.addActionListener(
+            e -> showAllocationReport()
+        );
+
+        btnRefresh.addActionListener(
+            e -> refresh()
+        );
     }
 
-   
+    // ===== Refresh VIP Queue Table =====
     private void refreshQueueTable() {
+
         queueTableModel.setRowCount(0);
-        VIPGuest[] guests = control.getAllVIPGuests();
+
+        VIPGuest[] guests =
+            control.getAllVIPGuests();
+
         if (guests == null || guests.length == 0) {
             return;
         }
 
-        VIPGuest[] sorted = new VIPGuest[guests.length];
-        System.arraycopy(guests, 0, sorted, 0, guests.length);
-        control.quickSortByTier(sorted, 0, sorted.length - 1);
+        VIPGuest[] sorted =
+            new VIPGuest[guests.length];
+
+        System.arraycopy(
+            guests,
+            0,
+            sorted,
+            0,
+            guests.length
+        );
+
+        control.quickSortByTier(
+            sorted,
+            0,
+            sorted.length - 1
+        );
 
         int rank = 1;
+
         for (VIPGuest guest : sorted) {
+
             if (guest.getAssignedRoom() == null) {
-                queueTableModel.addRow(new Object[]{
-                    rank++,
-                    guest.getName(),
-                    guest.getTier().getDisplay(),
-                    guest.getPhone(),
-                    guest.getPreferredRoomType()
-                });
+
+                queueTableModel.addRow(
+                    new Object[]{
+                        rank++,
+                        guest.getName(),
+                        guest.getTier().getDisplay(),
+                        guest.getPhone(),
+                        guest.getPreferredRoomType()
+                    }
+                );
             }
         }
     }
 
+    // ===== Refresh Room Table =====
     private void refreshRoomTable() {
+
         roomTableModel.setRowCount(0);
-        Room[] rooms = control.getRooms();
+
+        Room[] rooms =
+            control.getRooms();
+
         if (rooms == null || rooms.length == 0) {
             return;
         }
 
-        VIPGuest[] vipGuests = control.getAllVIPGuests();
+        VIPGuest[] vipGuests =
+            control.getAllVIPGuests();
 
         for (Room room : rooms) {
+
             String status;
             String assigned = "-";
+
             if (room.isOccupied()) {
+
                 status = "Occupied";
-                String confNumber = room.getAssignedConfirmationNumber();
+
+                String confNumber =
+                    room.getAssignedConfirmationNumber();
+
                 boolean found = false;
+
                 for (VIPGuest guest : vipGuests) {
-                    if (guest.getConfirmationNumber() != null &&
-                        guest.getConfirmationNumber().equals(confNumber)) {
-                        assigned = guest.getName() + " (VIP)";
+
+                    if (
+                        guest.getConfirmationNumber() != null
+                        && guest.getConfirmationNumber()
+                            .equals(confNumber)
+                    ) {
+
+                        assigned =
+                            guest.getName()
+                            + " (VIP)";
+
                         found = true;
                         break;
                     }
                 }
+
                 if (!found) {
-                    assigned = confNumber + " (Walk-In)";
+                    assigned =
+                        confNumber
+                        + " (Walk-In)";
                 }
+
             } else if (room.isReadyForAssignment()) {
+
                 status = "Available";
+
             } else {
-                status = String.valueOf(room.getCurrentStatus());
+
+                status =
+                    String.valueOf(
+                        room.getCurrentStatus()
+                    );
             }
-            roomTableModel.addRow(new Object[]{
-                room.getRoomId(),
-                room.getRoomType(),
-                status,
-                assigned
-            });
+
+            roomTableModel.addRow(
+                new Object[]{
+                    room.getRoomId(),
+                    room.getRoomType(),
+                    status,
+                    assigned
+                }
+            );
         }
     }
 
-   
+    // ===== Add VIP Guest =====
     private void showAddVIPDialog() {
-        JTextField nameField = new JTextField();
-        JTextField icField = new JTextField();
-        JTextField phoneField = new JTextField();
+
+        JTextField nameField =
+            new JTextField();
+
+        JTextField icField =
+            new JTextField();
+
+        JTextField phoneField =
+            new JTextField();
+
         JComboBox<VIPGuest.MembershipTier> tierCombo =
-            new JComboBox<>(VIPGuest.MembershipTier.values());
+            new JComboBox<>(
+                VIPGuest.MembershipTier.values()
+            );
+
         JComboBox<String> preferredRoomCombo =
-            new JComboBox<>(new String[]{"Standard", "Deluxe", "Suite", "Executive"});
+            new JComboBox<>(
+                new String[]{
+                    "Standard",
+                    "Deluxe",
+                    "Suite",
+                    "Executive"
+                }
+            );
 
         UiTheme.styleTextField(nameField);
         UiTheme.styleTextField(icField);
         UiTheme.styleTextField(phoneField);
 
-        JPanel panel = new JPanel(new GridLayout(0, 1, 4, 4));
-        panel.setBackground(UiTheme.SURFACE);
-        panel.add(UiTheme.bodyLabel("Name:"));
-        panel.add(nameField);
-        panel.add(UiTheme.bodyLabel("IC/Passport:"));
-        panel.add(icField);
-        panel.add(UiTheme.bodyLabel("Phone:"));
-        panel.add(phoneField);
-        panel.add(UiTheme.bodyLabel("Tier:"));
-        panel.add(tierCombo);
-        panel.add(UiTheme.bodyLabel("Preferred Room Type:"));
-        panel.add(preferredRoomCombo);
+        JPanel panel =
+            new JPanel(
+                new GridLayout(0, 1, 4, 4)
+            );
 
-        int result = JOptionPane.showConfirmDialog(
-            this, panel, "Add VIP Guest",
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
+        panel.setBackground(UiTheme.SURFACE);
+
+        panel.add(
+            UiTheme.bodyLabel("Name:")
         );
 
+        panel.add(nameField);
+
+        panel.add(
+            UiTheme.bodyLabel("IC/Passport:")
+        );
+
+        panel.add(icField);
+
+        panel.add(
+            UiTheme.bodyLabel("Phone:")
+        );
+
+        panel.add(phoneField);
+
+        panel.add(
+            UiTheme.bodyLabel("Tier:")
+        );
+
+        panel.add(tierCombo);
+
+        panel.add(
+            UiTheme.bodyLabel(
+                "Preferred Room Type:"
+            )
+        );
+
+        panel.add(preferredRoomCombo);
+
+        int result =
+            JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Add VIP Guest",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+            );
+
         if (result == JOptionPane.OK_OPTION) {
-            String name = nameField.getText().trim();
-            String ic = icField.getText().trim();
-            String phone = phoneField.getText().trim();
-            VIPGuest.MembershipTier tier = (VIPGuest.MembershipTier) tierCombo.getSelectedItem();
-            String preferredRoom = (String) preferredRoomCombo.getSelectedItem();
+
+            String name =
+                nameField.getText().trim();
+
+            String ic =
+                icField.getText().trim();
+
+            String phone =
+                phoneField.getText().trim();
+
+            VIPGuest.MembershipTier tier =
+                (VIPGuest.MembershipTier)
+                    tierCombo.getSelectedItem();
+
+            String preferredRoom =
+                (String)
+                    preferredRoomCombo
+                        .getSelectedItem();
 
             if (name.isEmpty() || phone.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Name and Phone are required!");
+
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Name and Phone are required!"
+                );
+
                 return;
             }
 
-            VIPGuest guest = new VIPGuest(name, ic, phone, tier, preferredRoom);
+            VIPGuest guest =
+                new VIPGuest(
+                    name,
+                    ic,
+                    phone,
+                    tier,
+                    preferredRoom
+                );
+
             control.addVIPGuest(guest);
-            infoArea.setText("VIP added: " + guest.getName() + " (" + tier.getDisplay() + ")");
-            refresh();
-            notifyDataChanged();
-        }
-    }
 
-    private void allocateRoom() {
-        if (control.getQueueSize() == 0) {
-            JOptionPane.showMessageDialog(this, "No VIP guests waiting.");
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(
-            this,
-            "Allocate a room to the highest priority VIP guest?",
-            "Confirm Allocation",
-            JOptionPane.OK_CANCEL_OPTION
-        );
-
-        if (confirm == JOptionPane.OK_OPTION) {
-            String message = control.allocateRoom();
-            infoArea.setText(message);
-            JOptionPane.showMessageDialog(this, message);
-            refresh();
-            notifyDataChanged();
-        }
-    }
-
-    private void releaseRoom() {
-        String roomId = JOptionPane.showInputDialog(this, "Enter Room ID to release:");
-        if (roomId == null || roomId.trim().isEmpty()) {
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(
-            this,
-            "Release room " + roomId + "?",
-            "Confirm Release",
-            JOptionPane.OK_CANCEL_OPTION
-        );
-
-        if (confirm == JOptionPane.OK_OPTION) {
-            control.releaseRoom(roomId.trim());
-            infoArea.setText("Room " + roomId + " released.");
-            refresh();
-            notifyDataChanged();
-        }
-    }
-
-    
-    private void searchVIP() {
-        String phone = JOptionPane.showInputDialog(this, "Enter Phone number to search:");
-        if (phone == null || phone.trim().isEmpty()) {
-            return;
-        }
-
-        VIPGuest guest = control.searchByPhone(phone.trim());
-        if (guest != null) {
-            String confirm = guest.getConfirmationNumber() != null ?
-                guest.getConfirmationNumber() : "Not assigned yet";
             infoArea.setText(
-                "VIP Found:\n" +
-                "   Name        : " + guest.getName() + "\n" +
-                "   IC/Passport : " + guest.getIdentityNumber() + "\n" +
-                "   Phone       : " + guest.getPhone() + "\n" +
-                "   Tier        : " + guest.getTier().getDisplay() + "\n" +
-                "   Preferred   : " + guest.getPreferredRoomType() + "\n" +
-                "   Confirmation: " + confirm
+                "VIP added: "
+                + guest.getName()
+                + " ("
+                + tier.getDisplay()
+                + ")"
             );
-        } else {
-            infoArea.setText("VIP not found with phone: " + phone);
+
+            refresh();
+            notifyDataChanged();
         }
     }
 
-    private void showQueueReport() {
-        infoArea.setText(control.generateQueueReport());
+    // ===== Allocate Room =====
+    private void allocateRoom() {
+
+        if (control.getQueueSize() == 0) {
+
+            JOptionPane.showMessageDialog(
+                this,
+                "No VIP guests waiting."
+            );
+
+            return;
+        }
+
+        int confirm =
+            JOptionPane.showConfirmDialog(
+                this,
+                "Allocate a room to the highest priority VIP guest?",
+                "Confirm Allocation",
+                JOptionPane.OK_CANCEL_OPTION
+            );
+
+        if (confirm == JOptionPane.OK_OPTION) {
+
+            String message =
+                control.allocateRoom();
+
+            infoArea.setText(message);
+
+            JOptionPane.showMessageDialog(
+                this,
+                message
+            );
+
+            refresh();
+            notifyDataChanged();
+        }
     }
 
+    // ===== Release Room =====
+    private void releaseRoom() {
+
+        String roomId =
+            JOptionPane.showInputDialog(
+                this,
+                "Enter Room ID to release:"
+            );
+
+        if (
+            roomId == null
+            || roomId.trim().isEmpty()
+        ) {
+            return;
+        }
+
+        int confirm =
+            JOptionPane.showConfirmDialog(
+                this,
+                "Release room "
+                    + roomId.trim()
+                    + "?",
+                "Confirm Release",
+                JOptionPane.OK_CANCEL_OPTION
+            );
+
+        if (confirm == JOptionPane.OK_OPTION) {
+
+            control.releaseRoom(
+                roomId.trim()
+            );
+
+            infoArea.setText(
+                "Room "
+                + roomId.trim()
+                + " released."
+            );
+
+            refresh();
+            notifyDataChanged();
+        }
+    }
+
+    // ===== Search VIP =====
+    private void searchVIP() {
+
+        String phone =
+            JOptionPane.showInputDialog(
+                this,
+                "Enter Phone number to search:"
+            );
+
+        if (
+            phone == null
+            || phone.trim().isEmpty()
+        ) {
+            return;
+        }
+
+        VIPGuest guest =
+            control.searchByPhone(
+                phone.trim()
+            );
+
+        if (guest != null) {
+
+            String confirmation =
+                guest.getConfirmationNumber() != null
+                    ? guest.getConfirmationNumber()
+                    : "Not assigned yet";
+
+            String room =
+                guest.getAssignedRoom() != null
+                    ? guest.getAssignedRoom()
+                        .getRoomId()
+                    : "Not assigned yet";
+
+            infoArea.setText(
+                "VIP Found:\n"
+                + "Name        : "
+                + guest.getName()
+                + "\n"
+                + "IC/Passport : "
+                + guest.getIdentityNumber()
+                + "\n"
+                + "Phone       : "
+                + guest.getPhone()
+                + "\n"
+                + "Tier        : "
+                + guest.getTier().getDisplay()
+                + "\n"
+                + "Preferred   : "
+                + guest.getPreferredRoomType()
+                + "\n"
+                + "Room        : "
+                + room
+                + "\n"
+                + "Confirmation: "
+                + confirmation
+            );
+
+        } else {
+
+            infoArea.setText(
+                "VIP not found with phone: "
+                + phone.trim()
+            );
+        }
+    }
+
+    // ===== Delete Waiting VIP Guest =====
+    private void deleteVIP() {
+
+        String phone =
+            JOptionPane.showInputDialog(
+                this,
+                "Enter Phone number of VIP guest to delete:"
+            );
+
+        if (
+            phone == null
+            || phone.trim().isEmpty()
+        ) {
+            return;
+        }
+
+        VIPGuest guest =
+            control.searchByPhone(
+                phone.trim()
+            );
+
+        if (guest == null) {
+
+            JOptionPane.showMessageDialog(
+                this,
+                "VIP Guest not found with phone: "
+                + phone.trim()
+            );
+
+            return;
+        }
+
+        if (guest.getAssignedRoom() != null) {
+
+            JOptionPane.showMessageDialog(
+                this,
+                "VIP Guest cannot be deleted because "
+                + "a room has already been assigned."
+            );
+
+            return;
+        }
+
+        int confirm =
+            JOptionPane.showConfirmDialog(
+                this,
+                "Delete VIP Guest?\n\n"
+                + "Name: "
+                + guest.getName()
+                + "\n"
+                + "Phone: "
+                + guest.getPhone()
+                + "\n"
+                + "Tier: "
+                + guest.getTier().getDisplay(),
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+            );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+
+            String message =
+                control.deleteVIPGuest(
+                    phone.trim()
+                );
+
+            infoArea.setText(message);
+
+            JOptionPane.showMessageDialog(
+                this,
+                message
+            );
+
+            refresh();
+            notifyDataChanged();
+        }
+    }
+
+    // ===== Queue Report =====
+    private void showQueueReport() {
+
+        infoArea.setText(
+            control.generateQueueReport()
+        );
+    }
+
+    // ===== Allocation Report =====
     private void showAllocationReport() {
-        infoArea.setText(control.generateAllocationReport());
+
+        infoArea.setText(
+            control.generateAllocationReport()
+        );
     }
 }

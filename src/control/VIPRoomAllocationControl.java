@@ -167,6 +167,72 @@ public class VIPRoomAllocationControl {
         addVIPGuest(guest);
     }
 
+    // ===== Delete Waiting VIP Guest =====
+public String deleteVIPGuest(String phone) {
+
+    if (phone == null || phone.trim().isEmpty()) {
+        return "Phone number is required.";
+    }
+
+    phone = phone.trim();
+
+    VIPGuest targetGuest = searchByPhone(phone);
+
+    if (targetGuest == null) {
+        return "VIP Guest not found with phone: " + phone;
+    }
+
+    // Guest with assigned room should use checkout/release instead
+    if (targetGuest.getAssignedRoom() != null) {
+        return "VIP Guest cannot be deleted because a room has already been assigned.";
+    }
+
+    // Remove from allVIPGuests array
+    int removeIndex = -1;
+
+    for (int i = 0; i < guestCount; i++) {
+        if (allVIPGuests[i] == targetGuest) {
+            removeIndex = i;
+            break;
+        }
+    }
+
+    if (removeIndex == -1) {
+        return "VIP Guest could not be deleted.";
+    }
+
+    for (int i = removeIndex; i < guestCount - 1; i++) {
+        allVIPGuests[i] = allVIPGuests[i + 1];
+    }
+
+    allVIPGuests[guestCount - 1] = null;
+    guestCount--;
+
+    // Rebuild Priority Queue without the deleted guest
+    int originalSize = queue.size();
+
+    VIPGuest[] temp = new VIPGuest[originalSize];
+    int tempCount = 0;
+
+    while (!queue.isEmpty()) {
+
+        VIPGuest currentGuest = queue.dequeue();
+
+        if (currentGuest != targetGuest) {
+            temp[tempCount++] = currentGuest;
+        }
+    }
+
+    // Reinsert remaining VIP guests
+    for (int i = 0; i < tempCount; i++) {
+        queue.enqueue(temp[i]);
+    }
+
+    return "VIP Guest "
+            + targetGuest.getName()
+            + " has been deleted successfully.";
+}
+
     /**
      * Assign a room to the highest-tier waiting VIP (heap front).
      * Called only when the user chooses Allocate Room,
@@ -174,95 +240,95 @@ public class VIPRoomAllocationControl {
      */
     public String allocateRoom() {
 
-        if (queue.isEmpty()) {
-            System.out.println("No VIP guests waiting.");
-            return "No VIP guests waiting.";
-        }
+    if (queue.isEmpty()) {
+        return "No VIP guests waiting.";
+    }
 
-        Room availableRoom = null;
+    VIPGuest guest = queue.peek();
+    String preferredType = guest.getPreferredRoomType();
 
-        VIPGuest guest = queue.peek();
+    Room availableRoom = null;
 
-        String preferredType =
-            guest.getPreferredRoomType();
+    boolean roomTypeExists = false;
+    boolean hasOccupiedRoom = false;
+    boolean hasNotReadyRoom = false;
 
-        // First: try preferred room type
-        for (int i = 0; i < roomCount; i++) {
+    // Search only for the preferred room type
+    for (int i = 0; i < roomCount; i++) {
 
-            if (rooms[i].getRoomType()
-                    .equalsIgnoreCase(preferredType)
-                    && rooms[i].isReadyForAssignment()
-                    && !rooms[i].isOccupied()) {
+        if (rooms[i].getRoomType().equalsIgnoreCase(preferredType)) {
 
-                availableRoom = rooms[i];
-                break;
+            roomTypeExists = true;
+
+            if (rooms[i].isOccupied()) {
+                hasOccupiedRoom = true;
+                continue;
             }
-        }
 
-        // Second: any available room
-        if (availableRoom == null) {
-
-            for (int i = 0; i < roomCount; i++) {
-
-                if (rooms[i].isReadyForAssignment()
-                        && !rooms[i].isOccupied()) {
-
-                    availableRoom = rooms[i];
-                    break;
-                }
+            if (!rooms[i].isReadyForAssignment()) {
+                hasNotReadyRoom = true;
+                continue;
             }
+
+            availableRoom = rooms[i];
+            break;
+        }
+    }
+
+    if (!roomTypeExists) {
+        return "No " + preferredType
+                + " room exists in the hotel.";
+    }
+
+    if (availableRoom == null) {
+
+        if (hasOccupiedRoom && hasNotReadyRoom) {
+            return "No " + preferredType
+                    + " room is currently available. "
+                    + "The rooms are occupied or not ready for check-in.";
         }
 
-        if (availableRoom == null) {
-
-            String message =
-                "No clean free rooms for "
-                + guest.getName()
-                + " (preferred: "
-                + preferredType
-                + ").";
-
-            System.out.println(message);
-
-            return message;
+        if (hasNotReadyRoom) {
+            return "The " + preferredType
+                    + " room is not ready for check-in yet.";
         }
 
-        guest = queue.dequeue();
+        return "No " + preferredType
+                + " room is currently available. "
+                + "All rooms are occupied.";
+    }
 
-        bookingCounter++;
+    // Remove guest only after suitable room is found
+    guest = queue.dequeue();
 
-        String confirmationNumber =
+    bookingCounter++;
+
+    String confirmationNumber =
             String.format("%08d", bookingCounter);
 
-        guest.setConfirmationNumber(
-            confirmationNumber
-        );
+    guest.setConfirmationNumber(confirmationNumber);
 
-        availableRoom.occupy(
-            confirmationNumber
-        );
+    availableRoom.occupy(confirmationNumber);
 
-        guest.setAssignedRoom(
-            availableRoom
-        );
+    guest.setAssignedRoom(availableRoom);
 
-        if (bookingCount >= bookingHistory.length) {
+    if (bookingCount >= bookingHistory.length) {
 
-            String[] newArray =
+        String[] newArray =
                 new String[bookingHistory.length * 2 + 1];
 
-            System.arraycopy(
+        System.arraycopy(
                 bookingHistory,
                 0,
                 newArray,
                 0,
                 bookingHistory.length
-            );
+        );
 
-            bookingHistory = newArray;
-        }
+        bookingHistory = newArray;
+    }
 
-        bookingHistory[bookingCount++] =
+    bookingHistory[bookingCount++] =
             "Room "
             + availableRoom.getRoomId()
             + " -> "
@@ -273,21 +339,18 @@ public class VIPRoomAllocationControl {
             + confirmationNumber
             + ")";
 
-        String message =
-            "Allocated room "
+    return "Allocated room "
             + availableRoom.getRoomId()
-            + " to "
+            + " ("
+            + availableRoom.getRoomType()
+            + ") to "
             + guest.getName()
             + " ["
             + guest.getTier().getDisplay()
             + "] (Conf: "
             + confirmationNumber
             + ").";
-
-        System.out.println(message);
-
-        return message;
-    }
+}
 
     // ===== Release Room =====
     public void releaseRoom(String roomId) {
