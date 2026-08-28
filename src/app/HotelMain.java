@@ -21,8 +21,6 @@ public class HotelMain {
         VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
         vipControl.setRooms(housekeeping.getAllRooms());
 
-        // ✅ No default VIP data - user must add manually
-        // vipControl.addTestData();  // ← COMMENTED OUT
 
         HotelUI hotelUI = new HotelUI();
 

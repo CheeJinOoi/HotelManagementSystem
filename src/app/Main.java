@@ -15,8 +15,6 @@ public class Main {
         VIPRoomAllocationControl vipControl = new VIPRoomAllocationControl();
         vipControl.setRooms(housekeeping.getAllRooms());
 
-        // ✅ No default VIP data - user must add manually
-        // vipControl.addTestData();  // ← COMMENTED OUT
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> HotelBootstrap.save(housekeeping)));
 

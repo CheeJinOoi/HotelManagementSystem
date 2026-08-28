@@ -31,7 +31,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         UiTheme.styleRoot(this);
         setLayout(new BorderLayout(12, 12));
 
-        // ✅ Updated: Removed Membership ID and Points, added Phone and Preferred Room
+   
         queueTableModel = new DefaultTableModel(
             new String[]{"#", "Name", "Tier", "Phone", "Preferred Room"}, 0
         ) {
@@ -119,7 +119,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         btnRefresh.addActionListener(e -> refresh());
     }
 
-    // ✅ Updated: Removed Membership ID and Points
+   
     private void refreshQueueTable() {
         queueTableModel.setRowCount(0);
         VIPGuest[] guests = control.getAllVIPGuests();
@@ -186,7 +186,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         }
     }
 
-    // ✅ Updated: Removed Membership ID, Points, Email; added Preferred Room Type
+   
     private void showAddVIPDialog() {
         JTextField nameField = new JTextField();
         JTextField icField = new JTextField();
@@ -281,7 +281,7 @@ public class VIPRoomAllocationGUI extends JPanel {
         }
     }
 
-    // ✅ Updated: Search by Phone instead of Membership ID
+    
     private void searchVIP() {
         String phone = JOptionPane.showInputDialog(this, "Enter Phone number to search:");
         if (phone == null || phone.trim().isEmpty()) {
